@@ -16,6 +16,7 @@
 				<mu-button @click="download()" color="primary">导出脚本</mu-button>
 				<mu-button @click="clear()" color="primary">清空计数</mu-button>
 				<mu-button @click="edit()" color="primary">添加脚本</mu-button>
+				<mu-button @click="recordTask._params=recordTask.def" color="primary">录制脚本</mu-button>
 			</div>
 			<br>
 			<mu-data-table :sort.sync="sort" :loading="loading" :columns="columns" :data="list" stripe :hover="false">
@@ -104,6 +105,7 @@
 		</div>
 		<i-form :open.sync="debugTask._params" title="调试参数" :params="debugTask.params" :submit="debugSetting"></i-form>
 		<i-form :open.sync="settingTask._params" :title="settingTask.name" :params="settingTask.params" :submit="setting"></i-form>
+		<i-form :open.sync="recordTask._params" title="脚本录制" :params="recordTask.params" :submit="record"></i-form>
 		<Preview :open.sync="url" @submit="add"></Preview>
 		<Details :open.sync="detail.script" :task="tasks[detail.row]"></Details>
 	</div>
@@ -144,6 +146,20 @@ export default {
 			ver: {},
 			fullscreen: !!localStorage.getItem('fullscreen'), // 代码编辑全屏
 			manifest: {},
+			recordTask: {
+				_params: false,
+				def: { mode: 0 },
+				params: [{
+					name: 'url',
+					type: 'text',
+					label: '签到网址',
+				}, {
+					name: 'mode',
+					label: '录制模式',
+					type: 'select',
+					options: [{ label: '模拟操作', value: 0 }, { label: '模拟请求(暂未实现)', value: 1 }]
+				}],
+			},
 		}
 	},
 	watch: {
@@ -460,6 +476,45 @@ export default {
 				console.error(e)
 			}
 		},
+		async record(body) {
+			let m = /^https?:\/\/([^\/]+)/.exec(body.url)
+			if (!m)
+				return this.$toast.error(`URL格式不正确`)
+			let domains = new Set([m[1]]);
+			utils.request('record/start', body)
+			window.onfocus = async () => {
+				let code = await utils.request('record/end')
+				window.onfocus = null;
+				code.replace(/https?:\/\/([^\/]+)/g, function (x0, x1) {
+					domains.add(x1)
+				})
+				code = `// ==UserScript==
+// @name              ${m[1]}
+// @version           1.0.0
+// @author            魂签录制
+// @loginURL          ${body.url}
+// @expire            300e3
+${Array.from(domains).map(x => `// @domain            ${x}`).join('\n')}
+// @param             name 账号
+// @param             pwd 密码
+// ==/UserScript==
+
+exports.run = async function(param) {
+	// 使用浏览器打开登录界面，并获取窗口句柄
+	return await open(${JSON.stringify(body.url)}, /** 调试时设置成true */ false, async (fb) => {
+		var rate = 0.5; // 间隔时间倍率,值越小脚本执行越快
+		${code.split('\n').join('\n\t\t')}
+		return "签到成功";
+	});
+};
+
+exports.check = async function(param) {
+	return true;
+};
+`
+				this.edit({ code })
+			}
+		}
 	},
 	components: {
 		Preview,

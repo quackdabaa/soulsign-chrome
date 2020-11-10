@@ -26,7 +26,7 @@ function checkDomain(domains, url) {
 	}, false);
 }
 
-function frameRunner(tabId, frameId, domains, url) {
+export function frameRunner(tabId, frameId, domains, url) {
 	return {
 		url,
 		eval(code, ...args) {
@@ -47,7 +47,7 @@ function frameRunner(tabId, frameId, domains, url) {
 				(document.documentElement || document.head).appendChild(s);
 			}, code);
 		},
-		waitLoaded(timeout) {
+		waitLoaded(timeout = 10e3) {
 			return new Promise(function(resolve, reject) {
 				function fn() {
 					resolve(true);
@@ -82,12 +82,94 @@ function frameRunner(tabId, frameId, domains, url) {
 			}
 			return false;
 		},
+		async press(selector, value, waitCount = 10) {
+			if (typeof value === "number") value = {keyCode: value};
+			if (!value.keyCode && !value.charCode) throw "keypress need keyCode";
+			if (await this.waitUntil(selector, waitCount)) {
+				await this.eval(
+					function press(s, v) {
+						if (typeof v === "number") v = {keyCode: v};
+						let el = typeof s === "string" ? document.querySelector(s) : s;
+						["keydown", "keypress", "keyup"].forEach(function(type, i) {
+							var keyboardEvent = document.createEvent("KeyboardEvent");
+							keyboardEvent[keyboardEvent.initKeyboardEvent ? "initKeyboardEvent" : "initKeyEvent"](
+								type, // event type: keydown, keyup, keypress
+								true, // bubbles
+								true, // cancelable
+								window, // view: should be window
+								v.ctrlKey || false, // ctrlKey
+								v.altKey || false, // altKey
+								v.shiftKey || false, // shiftKey
+								v.metaKey || false, // metaKey
+								v.keyCode || 0, // keyCode: unsigned long - the virtual key code, else 0
+								v.charCode || 0 // charCode: unsigned long - the Unicode character associated with the depressed key, else 0
+							);
+							el.dispatchEvent(keyboardEvent);
+						});
+						if (v.keyCode == 13) {
+							let p = el.parentElement;
+							while (p) {
+								if (p.tagName == "FORM") {
+									p.submit();
+									break;
+								}
+								p = p.parentElement;
+							}
+						}
+					},
+					selector,
+					value
+				);
+				return true;
+			}
+			return false;
+		},
 		iframes() {
 			return new Promise(function(resolve, reject) {
 				chrome.webNavigation.getAllFrames({tabId: tabId}, function(details) {
 					resolve(details.filter((x) => checkDomain(domains, x.url)).map((x) => frameRunner(tabId, x.frameId, domains, x.url)));
 				});
 			});
+		},
+		sleep(ms) {
+			return new Promise((resolve) => setTimeout(resolve, ms));
+		},
+		/**
+		 *
+		 * @param {string} url
+		 * @param {number} fuzzy 模糊匹配模式 3: 匹配host, 2 : 匹配path, 1: 匹配全部, 0: 最佳匹配
+		 * @param {number} [waitCount=10]
+		 */
+		async getFrame(url, fuzzy, waitCount = 10) {
+			fuzzy = fuzzy || 0;
+			let urlHost = url.replace(/^(https?:\/\/[^\/]+)[\s\S]*$/, "$1");
+			let urlPath = url.split("?")[0];
+			if (fuzzy > 2) url = urlHost;
+			else if (fuzzy > 1) url = urlPath;
+			while (true) {
+				let frames = await this.iframes();
+				if (!fuzzy || fuzzy == 1) {
+					for (let item of frames) {
+						if (item.url == url) return item;
+					}
+				}
+				if (fuzzy > 1) {
+					for (let item of frames) {
+						if (item.url.startsWith(url)) return item;
+					}
+				} else if (!fuzzy) {
+					for (let item of frames) {
+						if (item.url.startsWith(urlPath)) return item;
+					}
+					for (let item of frames) {
+						if (item.url.startsWith(urlHost)) return item;
+					}
+				}
+				if (--waitCount < 1) break;
+				await this.sleep(1e3);
+			}
+			console.error("no match url: " + url);
+			return this;
 		},
 	};
 }
