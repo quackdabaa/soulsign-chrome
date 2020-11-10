@@ -29,6 +29,23 @@ function pick(accept, multiple) {
 	});
 }
 
+function copy(str) {
+	str = typeof str === "string" ? str : JSON.stringify(str);
+	var success = false;
+	try {
+		var input = document.createElement("textarea");
+		input.style.position = "fixed";
+		input.style.top = "-100px";
+		input.value = str;
+		document.body.appendChild(input);
+		input.select();
+		input.setSelectionRange(0, str.length);
+		success = document.execCommand("copy");
+		document.body.removeChild(input);
+	} catch (error) {}
+	return success;
+}
+
 function readAsText(file) {
 	return new Promise((resolve, reject) => {
 		let fr = new FileReader();
@@ -104,4 +121,5 @@ export default Object.assign({}, utils, {
 	loading,
 	download,
 	buildScript,
+	copy,
 });
