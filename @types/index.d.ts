@@ -12,11 +12,21 @@ interface FrameRunner {
 	/** 等待元素出现, 每次重试间隔1秒 */
 	waitUntil(selector: string, retryCount = 10): Promise<boolean>;
 	/** 等待页面跳转结束 */
-	waitLoaded(timeout?: number): Promise<boolean>;
+	waitLoaded(timeout: number = 10e3): Promise<boolean>;
 	/** 点击元素, 如果元素不存在则waitUntil */
 	click(selector: string, retryCount = 10): Promise<boolean>;
 	/** 设置元素value, 如果元素不存在则waitUntil */
 	value(selector: string, value: string, retryCount = 10): Promise<boolean>;
+	sleep(ms: number): Promise<void>;
+	/** 模拟按键 */
+	press(selector: string, keyCode: number | object, retryCount = 10): Promise<boolean>;
+	/**
+	 * 根据url获取iframe页面
+	 * @param url
+	 * @param fuzzy 模糊匹配模式 3: 匹配host, 2 : 匹配path, 1: 严格匹配, 0: 最佳匹配
+	 * @param waitCount 等待次数,一次等于1秒
+	 */
+	getFrame(url: string, fuzzy?: number, waitCount = 10): Promise<FrameRunner>;
 	/** 获取页面的所有iframe页面 */
 	iframes(): Promise<FrameRunner[]>;
 }

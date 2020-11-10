@@ -135,9 +135,8 @@ export function frameRunner(tabId, frameId, domains, url) {
 			return new Promise((resolve) => setTimeout(resolve, ms));
 		},
 		/**
-		 *
 		 * @param {string} url
-		 * @param {number} fuzzy 模糊匹配模式 3: 匹配host, 2 : 匹配path, 1: 匹配全部, 0: 最佳匹配
+		 * @param {number} fuzzy 模糊匹配模式 3: 匹配host, 2 : 匹配path, 1: 严格匹配, 0: 最佳匹配
 		 * @param {number} [waitCount=10]
 		 */
 		async getFrame(url, fuzzy, waitCount = 10) {
