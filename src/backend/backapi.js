@@ -1,7 +1,7 @@
 import config from "./config";
 import utils from "./utils";
 import scriptbuild from "./scriptbuild";
-import {getCode, onCode, startRecord} from "./scriptrecord";
+import {getCode, beginCode, onCode, startRecord} from "./scriptrecord";
 
 export default {
 	"config/get"() {
@@ -28,6 +28,9 @@ export default {
 	},
 	"record/start"(data) {
 		return startRecord(data);
+	},
+	"record/begin"(data) {
+		return beginCode(data);
 	},
 	"record/code"(data) {
 		return onCode(data);

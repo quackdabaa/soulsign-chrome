@@ -38,6 +38,7 @@ function contentRecord() {
 		function bindInput(el, s) {
 			if (!s) s = getSelector(el);
 			if (["INPUT", "TEXTAREA"].indexOf(el.tagName) >= 0 && !/submit|button/.test(el.type) && !el.__soulsign__input__) {
+				if (el.value) send(`fb.value(${JSON.stringify(s)},${JSON.stringify(el.value)})`);
 				el.__soulsign__input__ = function() {
 					send(`fb.value(${JSON.stringify(s)},${JSON.stringify(el.value)})`);
 				};
@@ -109,20 +110,20 @@ function contentRecord() {
 			},
 			true
 		);
-		let els = document.querySelectorAll("input");
-		for (let i = 0; i < els.length; i++) {
-			let el = els[i];
-			bindInput(el);
-		}
+		let el = document.activeElement;
+		if (el) bindInput(el);
 	}
 }
 
 chrome.tabs.onUpdated.addListener(function(tabId, info) {
 	if (tabId == prevTab) {
 		// console.log(info);
+		if (info.url) prevURL = info.url;
 		if (info.status == "loading") {
-			if (code && !prevCode.startsWith("await fb.waitLoaded()")) {
-				onCode(`await fb.waitLoaded(); // ${info.url}`, true);
+			if (codes.length) {
+				if (prevCodeIsWaitLoad) codes[codes.length - 1] = `await fb.waitLoaded(); // ${info.url}`;
+				else codes.push(`await fb.waitLoaded(); // ${info.url}`);
+				prevCodeIsWaitLoad = true;
 			}
 		} else if (info.status == "complete") {
 			var fb = frameRunner(prevTab, 0, ["*"]);
@@ -135,12 +136,12 @@ chrome.tabs.onUpdated.addListener(function(tabId, info) {
 				})
 				.then(() =>
 					fb.eval(
-						code
+						codeInited
 							? `window.__soulsign_record_main__ = true`
 							: function() {
 									window.__soulsign_record_main__ = true;
 									alert("点击确定开始录制, 切换回魂签界面结束录制");
-									chrome.runtime.sendMessage({path: "record/code", body: ""});
+									chrome.runtime.sendMessage({path: "record/begin", body: ""});
 							  }
 					)
 				);
@@ -160,10 +161,13 @@ chrome.tabs.onUpdated.addListener(function(tabId, info) {
 // 	}
 // });
 
-let code = "";
+let codes = [];
 let prevTab = 0;
 let prevTime = 0;
-let prevCode = "";
+let prevURL = "";
+let prevCodeIsWaitLoad = false;
+let codeInited = false;
+let checkCode = "";
 export function startRecord(body) {
 	if (prevTab) {
 		chrome.tabs.remove(prevTab);
@@ -171,30 +175,41 @@ export function startRecord(body) {
 	}
 	chrome.tabs.create({url: body.url, active: true}, function(tab) {
 		chrome.cookies.set({url: body.url, name: "__soulsign_record__", value: "1"}, function() {
-			code = "";
+			codes = [];
 			prevTab = tab.id;
+			codeInited = false;
+			prevURL = body.url;
 		});
 	});
 }
 
-export function onCode(s, nosleep) {
-	console.log("oncode", s, nosleep);
+export function beginCode() {
+	codeInited = true;
+	prevTime = Date.now();
+}
+
+export function onCode(s) {
+	console.log("oncode", s);
 	if (s) {
-		prevCode = s;
-		if (!nosleep) code += `await fb.sleep(${Date.now() - prevTime} * rate)\n`;
-		code += s + "\n";
+		prevCodeIsWaitLoad = false;
+		if (codeInited) codes.push(`await fb.sleep(${Date.now() - prevTime} * rate)`);
+		codes.push(s);
 	}
 	prevTime = Date.now();
 }
 
 export function getCode() {
 	if (prevTab) {
-		code += `await fb.sleep(${Date.now() - prevTime} * rate)`;
+		if (prevCodeIsWaitLoad) {
+			codes.push(`if(!(await fb.eval("location.href")).startsWith(${JSON.stringify(prevURL.split("?")[0])})) throw '签到失败'`);
+		} else {
+			if (codes.length) codes[codes.length - 1] = `if(!${codes[codes.length - 1]}) throw '签到失败'`;
+		}
 		var tabId = prevTab;
 		setTimeout(() => {
 			chrome.tabs.remove(tabId);
 		}, 1e3);
 		prevTab = 0;
 	}
-	return code;
+	return codes.join("\n");
 }
