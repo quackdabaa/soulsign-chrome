@@ -19,16 +19,18 @@ function contentRecord() {
 			}
 			if (!s) s = el.tagName.toLowerCase();
 			let ps = getSelector(el.parentElement);
-			if (ps) s = ps + ">" + s;
-			let list = document.querySelectorAll(s);
-			if (list[0] == el) return s;
-			for (let i = 1; i < list.length; i++) {
+			if (!ps) return "";
+			s = ps + ">" + s;
+			if (document.querySelector(s) == el) return s;
+			let list = document.querySelectorAll(ps + ">*");
+			for (let i = 0; i < list.length; i++) {
 				if (list[i] == el) {
-					s += `:nth-child(${i + 1})`;
+					s = ps + `>:nth-child(${i + 1})`;
 					break;
 				}
 			}
 			if (document.querySelector(s) == el) return s;
+			return "";
 		}
 		function send(body, cb) {
 			if (window.__soulsign_record_main__) body = `await ${body}`;

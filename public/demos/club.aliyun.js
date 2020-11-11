@@ -15,10 +15,18 @@
 
 const opts = {headers: {referer: "https://club.aliyun.com/?spm=5176.12825654.amxosvpfn.27.45162c4a6Uuc9T"}};
 exports.run = async function(param) {
+	// 使用浏览器打开登录界面，并获取窗口句柄
+	return await open("https://club.aliyun.com/", /** 调试时设置成true */ false, async (fb) => {
+		var rate = 0.5; // 间隔时间倍率,值越小脚本执行越快
+		await fb.sleep(1772 * rate)
+		if(!await fb.click(".aliyun-front-btn.aliyun-front-medium.aliyun-front-btn-secondary>.aliyun-front-btn-helper:nth-child(2)")) throw '签到失败'
+		await fb.sleep(1760 * rate)
+		await fb.click(".ture-table>tbody>:nth-child(3)>:nth-child(3)")
+		await fb.sleep(6853 * rate)
+		await fb.click(".aliyun-front-icon")
+		return "签到成功";
+	});
 	var {data} = await axios.get("https://club.aliyun.com/json/UserSignIn.json?signSource=pc&signCompany=aliyun", opts);
-	await axios.get("https://club.aliyun.com/json/GetUserSignInfo.json?signSource=pc&signCompany=aliyun", opts);
-	await axios.get("https://club.aliyun.com/json/GetUserAllPoint.json", opts);
-	await axios.get("https://club.aliyun.com/json/GetUserDetailPoints.json?beginTime=&endTime=&source=&currentPage=1&pageSize=20", opts);
 	if (data.success) return `获得${data.data.todayPoints}金币`;
 	throw JSON.stringify(data);
 };
