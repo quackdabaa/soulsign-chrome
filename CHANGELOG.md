@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.2] - 2020-11-11
+
+### 🎉 增加
+
+- 初步支持脚本录制功能,支持录制点击、输入框输入、表单提交
+- popup页面增加cookie管理小工具
+- 模拟点击句柄支持press(模拟按键),getFrame(根据url获取iframe页面),详细参见`@types/index.d.ts`
+
+### 🚀 改变
+
+- 模拟点击句柄`waitLoaded`默认10秒超时，如果不想超时请传-1
+
+### 🛠 修复
+
+- 修复有的元素无法生成`css选择器`的bug
+
 ## [2.4.0] - 2020-11-11
 
 ### 🎉 增加
