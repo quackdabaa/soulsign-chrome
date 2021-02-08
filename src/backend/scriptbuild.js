@@ -32,7 +32,7 @@ export function frameRunner(tabId, frameId, domains, url) {
 		eval(code, ...args) {
 			if (typeof code === "function") code = `(${code})(${args.map((x) => JSON.stringify(x))});`;
 			return new Promise(function(resolve, reject) {
-				chrome.tabs.executeScript(tabId, {code, frameId, runAt: "document_end"}, function(result) {
+				chrome.tabs.executeScript(tabId, {code, frameId, runAt: "document_end", matchAboutBlank: true}, function(result) {
 					resolve(result && result[0]);
 				});
 			});

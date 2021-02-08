@@ -11,13 +11,18 @@ function contentRecord() {
 				s = "#" + CSS.escape(el.id);
 				if (document.querySelector(s) == el) return s;
 			}
-			for (let css of el.className.trim().split(/\s+/)) {
+			let ss = el.className.trim().split(/\s+/);
+			for (let i = 0; i < ss.length; i++) {
+				let css = ss[i];
 				if (css) {
 					s += "." + css;
 					if (document.querySelector(s) == el) return s;
 				}
 			}
-			if (!s) s = el.tagName.toLowerCase();
+			if (!s) {
+				s = el.tagName.toLowerCase();
+				if (document.querySelector(s) == el) return s;
+			}
 			let ps = getSelector(el.parentElement);
 			if (!ps) return "";
 			s = ps + ">" + s;
@@ -151,11 +156,11 @@ chrome.tabs.onUpdated.addListener(function(tabId, info) {
 	}
 });
 
-// chrome.webNavigation.onDOMContentLoaded.addListener(function(info) {
-// 	if (info.tabId == prevTab) {
-// 		console.log("onDOMContentLoaded", info.frameId, info.url);
-// 	}
-// });
+chrome.webNavigation.onDOMContentLoaded.addListener(function(info) {
+	if (info.tabId == prevTab) {
+		frameRunner(prevTab, info.frameId, ["*"]).eval(contentRecord);
+	}
+});
 
 // chrome.webNavigation.onCompleted.addListener(function(info) {
 // 	if (info.tabId == prevTab) {
@@ -169,10 +174,8 @@ let prevTime = 0;
 let prevURL = "";
 let prevCodeIsWaitLoad = false;
 let codeInited = false;
-let checkCode = "";
 export function startRecord(body) {
 	if (prevTab) {
-		chrome.tabs.remove(prevTab);
 		prevTab = 0;
 	}
 	chrome.tabs.create({url: body.url, active: true}, function(tab) {
@@ -207,10 +210,6 @@ export function getCode() {
 		} else {
 			if (codes.length) codes[codes.length - 1] = `if(!${codes[codes.length - 1]}) throw '签到失败'`;
 		}
-		var tabId = prevTab;
-		setTimeout(() => {
-			chrome.tabs.remove(tabId);
-		}, 1e3);
 		prevTab = 0;
 	}
 	return codes.join("\n");

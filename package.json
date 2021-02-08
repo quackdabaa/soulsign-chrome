@@ -1,6 +1,6 @@
 {
   "name": "soulsign-chrome",
-  "version": "2.4.2",
+  "version": "2.4.3",
   "description": "魂签，一款用于自动签到的 chrome 插件",
   "author": "inu1255 <inu1255@gmail.com>",
   "license": "MIT",
@@ -38,7 +38,7 @@
     "babel-preset-env": "^1.6.1",
     "babel-preset-stage-2": "^6.24.1",
     "babel-register": "^6.26.0",
-    "beu": "^1.0.2",
+    "beu": "^1.0.3",
     "buble": "^0.16.0",
     "buble-loader": "^0.4.1",
     "clean-webpack-plugin": "^0.1.17",

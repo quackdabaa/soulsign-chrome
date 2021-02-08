@@ -1,6 +1,7 @@
 <template>
 	<div class="root">
 		<div class="tar">
+			<a @click="reload">重启</a>
 			<a @click="tab=0">设置</a>
 			<a @click="tab=1">辅助</a>
 			<a target="_blank" href="/pages/options.html">任务管理</a>
@@ -87,6 +88,9 @@ export default {
 					})
 				})
 			})
+		},
+		reload() {
+			chrome.runtime.reload()
 		}
 	},
 	async mounted() {
