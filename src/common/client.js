@@ -1,11 +1,11 @@
-import utils from './utils';
-import scriptbuild from '../backend/scriptbuild';
+import utils from "./utils";
+import scriptbuild from "../backend/scriptbuild";
 
 function request(path, body) {
-	return new Promise(function(resolve, reject) {
-		chrome.runtime.sendMessage({ path, body }, function(x) {
-			if (x && x.no == 200) return resolve(x.data)
-			reject(x && x.msg)
+	return new Promise(function (resolve, reject) {
+		chrome.runtime.sendMessage({path, body}, function (x) {
+			if (x && x.no == 200) return resolve(x.data);
+			reject(x && x.msg);
 		});
 	});
 }
@@ -13,16 +13,16 @@ function request(path, body) {
 /**
  * 获取文件
  * @param {string} accept 'image/png'
- * @param {boolean} multiple 
+ * @param {boolean} multiple
  * @returns {Promise<File|FileList>}
  */
 function pick(accept, multiple) {
 	return new Promise((resolve, reject) => {
-		let input = document.createElement('input');
-		input.type = 'file';
+		let input = document.createElement("input");
+		input.type = "file";
 		input.multiple = multiple;
-		input.accept = accept || '*';
-		input.onchange = function(e) {
+		input.accept = accept || "*";
+		input.onchange = function (e) {
 			resolve(multiple ? e.target.files : e.target.files[0]);
 		};
 		input.click();
@@ -50,27 +50,30 @@ function readAsText(file) {
 	return new Promise((resolve, reject) => {
 		let fr = new FileReader();
 		fr.readAsText(file);
-		fr.onload = e => {
+		fr.onload = (e) => {
 			resolve(e.target.result);
 		};
 	});
 }
 
-function loading(name = 'loading') {
-	return function(target, key, descriptor) {
+function loading(name = "loading") {
+	return function (target, key, descriptor) {
 		const method = descriptor.value;
-		descriptor.value = function() {
+		descriptor.value = function () {
 			if (this[name]) return;
 			this[name] = true;
 			let ret = method.apply(this, arguments);
 			if (ret && typeof ret.then === "function") {
-				return ret.then(data => {
-					this[name] = false;
-					return data;
-				}, err => {
-					this[name] = false;
-					return Promise.reject(err);
-				});
+				return ret.then(
+					(data) => {
+						this[name] = false;
+						return data;
+					},
+					(err) => {
+						this[name] = false;
+						return Promise.reject(err);
+					}
+				);
 			}
 			return ret;
 		};
@@ -79,14 +82,13 @@ function loading(name = 'loading') {
 }
 
 function dataURLtoBlob(dataurl) {
-	var arr = dataurl.split(','),
-		mime = arr[0].match(/:(.*?);/)[1],
-		bstr = atob(arr[1]),
-		n = bstr.length,
-		u8arr = new Uint8Array(n);
-	while (n--)
-		u8arr[n] = bstr.charCodeAt(n);
-	return new Blob([u8arr], { type: mime });
+	var arr = dataurl.split(",");
+	var mime = arr[0].match(/:(.*?);/)[1];
+	var bstr = atob(arr[1]);
+	var n = bstr.length;
+	var u8arr = new Uint8Array(n);
+	while (n--) u8arr[n] = bstr.charCodeAt(n);
+	return new Blob([u8arr], {type: mime});
 }
 
 /**
@@ -96,22 +98,20 @@ function dataURLtoBlob(dataurl) {
  */
 function download(txt, name) {
 	if (/^(blob|https?):/.test(txt)) {
-		var a = document.createElement('a');
+		var a = document.createElement("a");
 		a.href = txt;
-		a.download = name || '未命名.txt';
+		a.download = name || "未命名.txt";
 		a.click();
 		return;
 	}
-	if (txt == "[object Blob]")
-		return download(URL.createObjectURL(txt), name);
-	if (/^data:/.test(txt))
-		return download(dataURLtoBlob(txt), name);
+	if (txt == "[object Blob]") return download(URL.createObjectURL(txt), name);
+	if (/^data:/.test(txt)) return download(dataURLtoBlob(txt), name);
 	return download(new Blob([txt]), name);
-};
+}
 
 function buildScript(text) {
 	let task = utils.compileTask(text);
-	return scriptbuild(task)
+	return scriptbuild(task);
 }
 
 export default Object.assign({}, utils, {

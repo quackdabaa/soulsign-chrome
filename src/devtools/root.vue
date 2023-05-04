@@ -3,16 +3,15 @@
 </template>
 <script>
 export default {
-	data: () => ({
-	}),
+	data: () => ({}),
 	computed: {},
-	created() { },
-	mounted() { },
-	methods: {}
-}
+	created() {},
+	mounted() {},
+	methods: {},
+};
 </script>
 <style lang="less">
 div {
-  color: blue;
+	color: blue;
 }
 </style>

@@ -1,5 +1,5 @@
 import Vue from "vue";
-import Root from "./Root.vue";
+import Root from "../options/Root.vue";
 
 import "muse-ui/dist/muse-ui.css";
 import MuseUI from "muse-ui";

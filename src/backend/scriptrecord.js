@@ -1,5 +1,11 @@
 import {frameRunner} from "./scriptbuild";
 
+let codes = [];
+let prevTab = 0;
+let prevTime = 0;
+let prevURL = "";
+let prevCodeIsWaitLoad = false;
+let codeInited = false;
 function contentRecord() {
 	if (!window.__soulsign_record__) {
 		console.log("魂签录制中...");
@@ -44,9 +50,13 @@ function contentRecord() {
 		}
 		function bindInput(el, s) {
 			if (!s) s = getSelector(el);
-			if (["INPUT", "TEXTAREA"].indexOf(el.tagName) >= 0 && !/submit|button/.test(el.type) && !el.__soulsign__input__) {
+			if (
+				["INPUT", "TEXTAREA"].indexOf(el.tagName) >= 0 &&
+				!/submit|button/.test(el.type) &&
+				!el.__soulsign__input__
+			) {
 				if (el.value) send(`fb.value(${JSON.stringify(s)},${JSON.stringify(el.value)})`);
-				el.__soulsign__input__ = function() {
+				el.__soulsign__input__ = function () {
 					send(`fb.value(${JSON.stringify(s)},${JSON.stringify(el.value)})`);
 				};
 				el.addEventListener("change", el.__soulsign__input__);
@@ -55,7 +65,7 @@ function contentRecord() {
 		function press(s, v) {
 			if (typeof v === "number") v = {keyCode: v};
 			let el = typeof s === "string" ? document.querySelector(s) : s;
-			["keydown", "keypress", "keyup"].forEach(function(type, i) {
+			["keydown", "keypress", "keyup"].forEach(function (type, i) {
 				var keyboardEvent = document.createEvent("KeyboardEvent");
 				keyboardEvent[keyboardEvent.initKeyboardEvent ? "initKeyboardEvent" : "initKeyEvent"](
 					type, // event type: keydown, keyup, keypress
@@ -82,12 +92,12 @@ function contentRecord() {
 				}
 			}
 		}
-		document.addEventListener("keyup", function(e) {
+		document.addEventListener("keyup", function (e) {
 			if (e.key == "Tab") bindInput(e.target);
 		});
 		document.addEventListener(
 			"keypress",
-			function(e) {
+			function (e) {
 				if (!e.isTrusted) return;
 				if (e.key == "Enter") {
 					e.stopPropagation();
@@ -95,7 +105,7 @@ function contentRecord() {
 					let el = e.target;
 					let s = getSelector(el);
 					if (["INPUT", "TEXTAREA"].indexOf(el.tagName) >= 0 && !/submit|button/.test(el.type)) {
-						send(`fb.value(${JSON.stringify(s)},${JSON.stringify(el.value)})`, function() {
+						send(`fb.value(${JSON.stringify(s)},${JSON.stringify(el.value)})`, function () {
 							send(`fb.press(${JSON.stringify(s)}, 13)`, () => press(el, 13));
 						});
 					} else {
@@ -107,7 +117,7 @@ function contentRecord() {
 		);
 		document.addEventListener(
 			"click",
-			function(e) {
+			function (e) {
 				if (!e.isTrusted) return;
 				e.stopPropagation();
 				e.preventDefault();
@@ -122,7 +132,7 @@ function contentRecord() {
 	}
 }
 
-chrome.tabs.onUpdated.addListener(function(tabId, info) {
+chrome.tabs.onUpdated.addListener(function (tabId, info) {
 	if (tabId == prevTab) {
 		// console.log(info);
 		if (info.url) prevURL = info.url;
@@ -145,7 +155,7 @@ chrome.tabs.onUpdated.addListener(function(tabId, info) {
 					fb.eval(
 						codeInited
 							? `window.__soulsign_record_main__ = true`
-							: function() {
+							: function () {
 									window.__soulsign_record_main__ = true;
 									alert("点击确定开始录制, 切换回魂签界面结束录制");
 									chrome.runtime.sendMessage({path: "record/begin", body: ""});
@@ -156,7 +166,7 @@ chrome.tabs.onUpdated.addListener(function(tabId, info) {
 	}
 });
 
-chrome.webNavigation.onDOMContentLoaded.addListener(function(info) {
+chrome.webNavigation.onDOMContentLoaded.addListener(function (info) {
 	if (info.tabId == prevTab) {
 		frameRunner(prevTab, info.frameId, ["*"]).eval(contentRecord);
 	}
@@ -168,18 +178,12 @@ chrome.webNavigation.onDOMContentLoaded.addListener(function(info) {
 // 	}
 // });
 
-let codes = [];
-let prevTab = 0;
-let prevTime = 0;
-let prevURL = "";
-let prevCodeIsWaitLoad = false;
-let codeInited = false;
 export function startRecord(body) {
 	if (prevTab) {
 		prevTab = 0;
 	}
-	chrome.tabs.create({url: body.url, active: true}, function(tab) {
-		chrome.cookies.set({url: body.url, name: "__soulsign_record__", value: "1"}, function() {
+	chrome.tabs.create({url: body.url, active: true}, function (tab) {
+		chrome.cookies.set({url: body.url, name: "__soulsign_record__", value: "1"}, function () {
 			codes = [];
 			prevTab = tab.id;
 			codeInited = false;
@@ -206,10 +210,13 @@ export function onCode(s) {
 export function getCode() {
 	if (prevTab) {
 		if (prevCodeIsWaitLoad) {
-			codes.push(`if(!(await fb.eval("location.href")).startsWith(${JSON.stringify(prevURL.split("?")[0])})) throw '签到失败'`);
-		} else {
-			if (codes.length) codes[codes.length - 1] = `if(!${codes[codes.length - 1]}) throw '签到失败'`;
-		}
+			codes.push(
+				`if(!(await fb.eval("location.href")).startsWith(${JSON.stringify(
+					prevURL.split("?")[0]
+				)})) throw '签到失败'`
+			);
+		} else if (codes.length)
+			codes[codes.length - 1] = `if(!${codes[codes.length - 1]}) throw '签到失败'`;
 		prevTab = 0;
 	}
 	return codes.join("\n");

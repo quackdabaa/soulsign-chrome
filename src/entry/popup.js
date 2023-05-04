@@ -1,5 +1,5 @@
 import Vue from "vue";
-import Root from "./Root.vue";
+import Root from "../popup/Root.vue";
 import "../common/base.less";
 
 Vue.config.productionTip = false;

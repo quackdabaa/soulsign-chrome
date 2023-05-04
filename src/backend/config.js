@@ -1,4 +1,4 @@
-let config = {
+const config = {
 	version: 10000,
 	/** 通知时间 */
 	notify_at: 0,

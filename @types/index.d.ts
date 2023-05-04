@@ -1,55 +1,135 @@
-interface FrameRunner {
-	/** 初始url不会随页面跳转更新 */
-	url: string;
-	/** 执行脚本,运行在插件环境(仅返回可以序列化的对象) */
-	eval(code: string): Promise<any>;
-	/** 执行脚本,运行在插件环境(fn不能使用上下文中的变量,args仅支持可以序列化的对象,仅返回可以序列化的对象) */
-	eval(fn: Function, ...args): Promise<any>;
-	/** 在浏览器环境执行脚本 */
-	inject(code: string): Promise<void>;
-	/** 在浏览器环境执行脚本(fn不能使用上下文中的变量,args仅支持可以序列化的对象) */
-	inject(fn: Function, ...args): Promise<void>;
-	/** 等待元素出现, 每次重试间隔1秒 */
-	waitUntil(selector: string, retryCount = 10): Promise<boolean>;
-	/** 等待页面跳转结束 */
-	waitLoaded(timeout: number = 10e3): Promise<boolean>;
-	/** 点击元素, 如果元素不存在则waitUntil */
-	click(selector: string, retryCount = 10): Promise<boolean>;
-	/** 设置元素value, 如果元素不存在则waitUntil */
-	value(selector: string, value: string, retryCount = 10): Promise<boolean>;
-	sleep(ms: number): Promise<void>;
-	/** 模拟按键 */
-	press(selector: string, keyCode: number | object, retryCount = 10): Promise<boolean>;
-	/**
-	 * 根据url获取iframe页面
-	 * @param url
-	 * @param fuzzy 模糊匹配模式 3: 匹配host, 2 : 匹配path, 1: 严格匹配, 0: 最佳匹配
-	 * @param waitCount 等待次数,一次等于1秒
-	 */
-	getFrame(url: string, fuzzy?: number, waitCount = 10): Promise<FrameRunner>;
-	/** 获取页面的所有iframe页面 */
-	iframes(): Promise<FrameRunner[]>;
+type Diff<T, U> = T extends U ? never : T;
+type Filter<T, U> = T extends U ? T : never;
+type VueMixin = Parameters<typeof Vue.extend>[0];
+
+interface IPromise<T> extends Promise<T> {
+	resolve(x?: T): void;
+	reject(e: any): void;
+	pending: boolean;
+	resolved: boolean;
+	rejected: boolean;
 }
-/** 在MacOS上相当于openWindow， 其它平台相当于openTab */
-declare function open<T>(url: string, devMode: boolean, cb: (fb: FrameRunner) => Promise<T>, preload: string): Promise<T>;
-/**
- * 使用tab方式打开页面, 对window系统友好(不会在任务栏突然多一个任务),
- * 当devMode为false时tab不会激活，这个可以被目标网页检测到，可能导致签到失败。
- * @param url
- * @param devMode 是否开发模式(窗口会显示出来,否则窗口会隐藏)
- * @param cb 回调，返回promise,promise结束后窗口会关闭
- * @param preload 预执行脚本,运行在浏览器环境,在页面js执行之前执行，可以进行一些hack行为
- */
-declare function openTab<T>(url: string, devMode: boolean, cb: (fb: FrameRunner) => Promise<T>, preload: string): Promise<T>;
-/**
- * 使用新窗口打开页面, 对于macos系统友好(用户完全无感)
- * @param url
- * @param devMode 是否开发模式(窗口会显示出来,否则窗口会隐藏)
- * @param cb 回调，返回promise,promise结束后窗口会关闭
- * @param preload 预执行脚本,运行在浏览器环境,在页面js执行之前执行，可以进行一些hack行为
- */
-declare function openWindow<T>(url: string, devMode: boolean, cb: (fb: FrameRunner) => Promise<T>, preload: string): Promise<T>;
-declare namespace tools {
-	declare function version(ver: string, extVer?: string): 0 | -1 | 1;
-	declare function sleep(ms: number): Promise<void>;
+
+interface Point {
+	x: number;
+	y: number;
 }
+
+interface Size {
+	width: number;
+	height: number;
+}
+
+interface Rect {
+	x: number;
+	y: number;
+	width: number;
+	height: number;
+}
+
+interface Clipboard extends EventTarget {
+	read(): Promise<ClipboardItem[]>;
+	write(items: ClipboardItem[]);
+	readText(): Promise<string>;
+	writeText(data: string): Promise<void>;
+}
+
+interface Blob {
+	name?: string;
+	path?: string;
+	lastModified?: number;
+}
+
+type SimpleKey =
+	| "Left"
+	| "Right"
+	| "Up"
+	| "Down"
+	| "Enter"
+	| "Space"
+	| "Backspace"
+	| "Delete"
+	| "Tab"
+	| "Home"
+	| "End"
+	| "PageUp"
+	| "PageDown"
+	| "Esc"
+	| "F1"
+	| "F2"
+	| "F3"
+	| "F4"
+	| "F5"
+	| "F6"
+	| "F7"
+	| "F8"
+	| "F9"
+	| "F10"
+	| "F11"
+	| "F12";
+type WordKey =
+	| "0"
+	| "1"
+	| "2"
+	| "3"
+	| "4"
+	| "5"
+	| "6"
+	| "7"
+	| "8"
+	| "9"
+	| "A"
+	| "B"
+	| "C"
+	| "D"
+	| "E"
+	| "F"
+	| "G"
+	| "H"
+	| "I"
+	| "J"
+	| "K"
+	| "L"
+	| "M"
+	| "N"
+	| "O"
+	| "P"
+	| "Q"
+	| "R"
+	| "S"
+	| "T"
+	| "U"
+	| "V"
+	| "W"
+	| "X"
+	| "Y"
+	| "Z";
+type SymbalKey = "," | "." | "/" | ";" | "'" | "[" | "]" | "\\" | "-" | "=" | "`";
+type AllKeys = SimpleKey | WordKey | SymbalKey;
+type Prefix =
+	| "Meta+"
+	| "Ctrl+"
+	| "Alt+"
+	| "Shift+"
+	| "Ctrl+Shift+"
+	| "Ctrl+Alt+"
+	| "Meta+Shift+"
+	| "Meta+Alt+"
+	| "";
+type HotKey = `${Prefix}${AllKeys}`;
+
+type Split<T, K extends string = ","> = T extends `${infer A}${K}${infer B}`
+	? Split<A, K> | Split<B, K>
+	: T;
+
+declare var baseURL: string;
+declare const electron_api: import("electron").BrowserWindow & {
+	call: (method: string, ...args: any[]) => Promise<any>;
+	winmap: {[id: string]: import("electron").BrowserWindow};
+};
+declare module "*.vue" {
+	import {ComponentOptions} from "vue";
+	const a: ComponentOptions<any, any, any, any, any, any>;
+	export default a;
+}
+declare function gevt(name: string, category: string, label?: string, result?: boolean, value?: number);

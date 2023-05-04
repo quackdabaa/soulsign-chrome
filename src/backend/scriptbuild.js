@@ -3,9 +3,11 @@
  */
 import axios from "axios";
 import utils from "./utils";
+import Listener from "@/common/Listener";
+import {newNotification} from "@/common/chrome";
 
-const evt = document.createElement("div");
-chrome.tabs.onUpdated.addListener(function(tabId, info) {
+const evt = new Listener();
+chrome.tabs.onUpdated.addListener(function (tabId, info) {
 	let event = new CustomEvent(tabId + ":" + info.status, {detail: info});
 	evt.dispatchEvent(event);
 });
@@ -14,9 +16,9 @@ function checkDomain(domains, url) {
 	let m = /https?:\/\/([^:\/]+)/.exec(url);
 	if (!m) return false;
 	let ss = m[1].split(".");
-	return domains.reduce(function(a, b) {
+	return domains.reduce(function (a, b) {
 		if (a) return true;
-		if ("*" == b) return true;
+		if (b == "*") return true;
 		let dd = b.split(".");
 		if (dd.length != ss.length) return false;
 		for (let i = 0; i < ss.length; i++) {
@@ -31,15 +33,19 @@ export function frameRunner(tabId, frameId, domains, url) {
 		url,
 		eval(code, ...args) {
 			if (typeof code === "function") code = `(${code})(${args.map((x) => JSON.stringify(x))});`;
-			return new Promise(function(resolve, reject) {
-				chrome.tabs.executeScript(tabId, {code, frameId, runAt: "document_end", matchAboutBlank: true}, function(result) {
-					resolve(result && result[0]);
-				});
+			return new Promise(function (resolve, reject) {
+				chrome.tabs.executeScript(
+					tabId,
+					{code, frameId, runAt: "document_end", matchAboutBlank: true},
+					function (result) {
+						resolve(result && result[0]);
+					}
+				);
 			});
 		},
 		inject(code, ...args) {
 			if (typeof code === "function") code = `(${code})(${args.map((x) => JSON.stringify(x))});`;
-			return this.eval(function(code) {
+			return this.eval(function (code) {
 				var s = document.createElement("script");
 				s.setAttribute("soulsign", "");
 				s.innerHTML = code;
@@ -48,14 +54,14 @@ export function frameRunner(tabId, frameId, domains, url) {
 			}, code);
 		},
 		waitLoaded(timeout = 10e3) {
-			return new Promise(function(resolve, reject) {
+			return new Promise(function (resolve, reject) {
 				function fn() {
 					resolve(true);
 					evt.removeEventListener(tabId + ":complete", fn);
 				}
 				evt.addEventListener(tabId + ":complete", fn);
 				if (timeout > 0)
-					setTimeout(function() {
+					setTimeout(function () {
 						resolve(false);
 						evt.removeEventListener(tabId + ":complete", fn);
 					}, timeout);
@@ -90,7 +96,7 @@ export function frameRunner(tabId, frameId, domains, url) {
 					function press(s, v) {
 						if (typeof v === "number") v = {keyCode: v};
 						let el = typeof s === "string" ? document.querySelector(s) : s;
-						["keydown", "keypress", "keyup"].forEach(function(type, i) {
+						["keydown", "keypress", "keyup"].forEach(function (type, i) {
 							var keyboardEvent = document.createEvent("KeyboardEvent");
 							keyboardEvent[keyboardEvent.initKeyboardEvent ? "initKeyboardEvent" : "initKeyEvent"](
 								type, // event type: keydown, keyup, keypress
@@ -125,9 +131,13 @@ export function frameRunner(tabId, frameId, domains, url) {
 			return false;
 		},
 		iframes() {
-			return new Promise(function(resolve, reject) {
-				chrome.webNavigation.getAllFrames({tabId: tabId}, function(details) {
-					resolve(details.filter((x) => checkDomain(domains, x.url)).map((x) => frameRunner(tabId, x.frameId, domains, x.url)));
+			return new Promise(function (resolve, reject) {
+				chrome.webNavigation.getAllFrames({tabId: tabId}, function (details) {
+					resolve(
+						details
+							.filter((x) => checkDomain(domains, x.url))
+							.map((x) => frameRunner(tabId, x.frameId, domains, x.url))
+					);
 				});
 			});
 		},
@@ -177,25 +187,25 @@ export function frameRunner(tabId, frameId, domains, url) {
  *
  * @param {soulsign.Task} task 脚本允许访问的
  */
-export default function(task) {
+export default function (task) {
 	let request = axios.create({timeout: 10e3});
 	const domains = task.domains.concat();
-	request.interceptors.request.use(function(config) {
+	request.interceptors.request.use(function (config) {
 		if (!checkDomain(domains, config.url)) return Promise.reject(`domain配置不正确`);
 		if (config.headers) {
-			if (config.headers["Referer"]) {
-				config.headers["_referer"] = config.headers["Referer"];
-				delete config.headers["Referer"];
-			} else if (config.headers["referer"]) {
-				config.headers["_referer"] = config.headers["referer"];
-				delete config.headers["referer"];
+			if (config.headers.Referer) {
+				config.headers._referer = config.headers.Referer;
+				delete config.headers.Referer;
+			} else if (config.headers.referer) {
+				config.headers._referer = config.headers.referer;
+				delete config.headers.referer;
 			}
-			if (config.headers["Origin"]) {
-				config.headers["_origin"] = config.headers["Origin"];
-				delete config.headers["Origin"];
-			} else if (config.headers["origin"]) {
-				config.headers["_origin"] = config.headers["origin"];
-				delete config.headers["origin"];
+			if (config.headers.Origin) {
+				config.headers._origin = config.headers.Origin;
+				delete config.headers.Origin;
+			} else if (config.headers.origin) {
+				config.headers._origin = config.headers.origin;
+				delete config.headers.origin;
 			}
 		}
 		return config;
@@ -210,7 +220,7 @@ export default function(task) {
 		 */
 		require(url) {
 			if (!grant.has("require")) return Promise.reject("需要@grant require");
-			return axios.get(url, {validateStatus: () => true}).then(function({data}) {
+			return axios.get(url, {validateStatus: () => true}).then(function ({data}) {
 				let module = {exports: {}};
 				new Function("exports", "module", data)(module.exports, module);
 				return module.exports;
@@ -246,27 +256,39 @@ export default function(task) {
 		},
 		notify(body, url, timeout) {
 			if (!grant.has("notify")) throw "需要@grant notify";
-			let n = new Notification(task.name, {
+			let n = newNotification(task.name, {
 				body,
 				icon: "chrome://favicon/https://" + task.domains[0],
 			});
-			n.onclick = function() {
+			n.onclick = function () {
 				this.close();
 				if (url) chrome.tabs.create({url});
 			};
-			setTimeout(function() {
+			setTimeout(function () {
 				n.close();
 			}, timeout || 300e3);
 		},
 		openWindow(url, dev, fn, preload) {
 			if (!checkDomain(domains, url)) return Promise.reject(`domain配置不正确`);
-			return new Promise(function(resolve, reject) {
+			return new Promise(function (resolve, reject) {
 				chrome.windows.create(
 					dev
-						? {left: 0, top: 0, width: window.screen.availWidth, height: window.screen.availHeight, focused: dev, type: "normal"}
+						? {
+								left: 0,
+								top: 0,
+								width: window.screen.availWidth,
+								height: window.screen.availHeight,
+								focused: dev,
+								type: "normal",
+						  }
 						: {state: "minimized", focused: false, type: "normal"},
-					function(w) {
-						if (!dev) chrome.windows.update(w.id, {state: "minimized", drawAttention: false, focused: false});
+					function (w) {
+						if (!dev)
+							chrome.windows.update(w.id, {
+								state: "minimized",
+								drawAttention: false,
+								focused: false,
+							});
 						inject
 							.openTab(url, true, fn, preload, w.id)
 							.then(resolve, reject)
@@ -277,16 +299,20 @@ export default function(task) {
 		},
 		openTab(url, dev, fn, preload, windowId) {
 			if (!checkDomain(domains, url)) return Promise.reject(`domain配置不正确`);
-			return new Promise(function(resolve, reject) {
-				chrome.tabs.create({url, active: dev, windowId}, function(tab) {
+			return new Promise(function (resolve, reject) {
+				chrome.tabs.create({url, active: dev, windowId}, function (tab) {
 					let pms = Promise.resolve();
 					if (preload) {
 						if (typeof preload === "function") preload = `(${preload})();`;
-						pms = new Promise(function(resolve, reject) {
-							chrome.cookies.set({url, name: "__soulsign_inject__", value: encodeURIComponent(preload)}, resolve);
+						pms = new Promise(function (resolve, reject) {
+							chrome.cookies.set(
+								{url, name: "__soulsign_inject__", value: encodeURIComponent(preload)},
+								resolve
+							);
 						});
 					}
-					pms.then(() => frameRunner(tab.id, 0, domains, url))
+					pms
+						.then(() => frameRunner(tab.id, 0, domains, url))
 						.then((x) => x.waitLoaded().then(() => x))
 						.then(fn)
 						.then(resolve, reject)
@@ -296,7 +322,8 @@ export default function(task) {
 		},
 		open(url, dev, fn, preload) {
 			if (!checkDomain(domains, url)) return Promise.reject(`domain配置不正确`);
-			if (/macintosh|mac os x/i.test(navigator.userAgent)) return inject.openWindow(url, dev, fn, preload);
+			if (/macintosh|mac os x/i.test(navigator.userAgent))
+				return inject.openWindow(url, dev, fn, preload);
 			return inject.openTab(url, dev, fn, preload);
 		},
 	};
@@ -317,7 +344,11 @@ export default function(task) {
 	let inject_values = Object.values(inject);
 	task = Object.assign({}, utils.TASK_EXT, task);
 	let module = {exports: {}};
-	new Function("exports", "module", ...inject_keys, task.code)(module.exports, module, ...inject_values);
+	new Function("exports", "module", ...inject_keys, task.code)(
+		module.exports,
+		module,
+		...inject_values
+	);
 	task.check = module.exports.check;
 	task.run = module.exports.run;
 	return task;
