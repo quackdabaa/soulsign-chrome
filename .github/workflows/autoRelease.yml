@@ -60,7 +60,7 @@ jobs:
         id: setup
         run: |
           npm install
-          npm run build-update
+          npm run build
 
       - name: Get manifest version
         if: steps.setup.outcome == 'success'
