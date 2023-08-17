@@ -29,12 +29,6 @@ chrome.tabs.onUpdated.addListener(function (tabId, tabInfo, tab) {
 			),
 		});
 	}
-	if (!config.donate) return;
-	let url =
-		"https://union-click.jd.com/jdc?e=&p=AyIGZRprFDJWWA1FBCVbV0IUWVALHFRBEwQAQB1AWQkrGn0HSFEFTit2UVZMFnwsQQsQWgtlOxkOIgdTGloXCxcGUxhrFQMTB1cZWxEGEDdlG1olSXwGZRhaFQEbDlIbWxEyEgNcGF0SChcOVhNcFTIVB1wrGUlAFwVUGVMUCiI3ZRhrJTISB2Uba0pGT1plGVoUBhs%3D";
-	if (tabInfo.url && tabInfo.url.endsWith("//www.jd.com/")) {
-		chrome.tabs.update(tabId, {url});
-	}
 });
 
 function race(pms, ms) {
@@ -107,10 +101,9 @@ async function loop() {
 						// 距离上次不在线15分钟了
 						newNotification(`${task.name}不在线`, {
 							body: "点此去登录或禁用它",
+							url: task.loginURL || "/pages/options.html",
 							icon: `chrome://favicon/https://${task.domains[0]}`,
-						}).onclick = function () {
-							chrome.tabs.create({url: task.loginURL || "/pages/options.html"});
-						};
+						});
 						config.notify_at = now;
 						await utils.syncSave({config});
 					}
@@ -176,8 +169,7 @@ async function upgrade() {
 	if (li.length) {
 		let title = li[0];
 		if (li.length > 1) title += `等${li.length}个脚本`;
-		newNotification(title + " 升级成功").onclick = () =>
-			chrome.tabs.create({url: "/pages/options.html"});
+		newNotification(title + " 升级成功", {url: "/pages/options.html"});
 	}
 	config.upgrade_at = now;
 	await utils.syncSave({config});

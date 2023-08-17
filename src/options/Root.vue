@@ -9,11 +9,8 @@
 			<mu-button slot="right" flat @click="go('https://soulsign.inu1255.cn/', 1)"
 				>脚本推荐</mu-button
 			>
-			<mu-button
-				slot="right"
-				flat
-				@click="go('https://donate.inu1255.cn/inu1255/soulsign-chrome', 1)"
-				>捐赠</mu-button
+			<mu-button slot="right" flat @click="go('https://space.bilibili.com/8454380', 1)"
+				>施舍</mu-button
 			>
 			<mu-button slot="right" flat @click="go('https://github.com/inu1255/soulsign-chrome', 1)"
 				>源码</mu-button

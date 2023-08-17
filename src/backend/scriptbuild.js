@@ -4,7 +4,7 @@
 import axios from "axios";
 import utils from "./utils";
 import Listener from "@/common/Listener";
-import {newNotification} from "@/common/chrome";
+import {newNotification, withHost} from "@/common/chrome";
 
 const evt = new Listener();
 chrome.tabs.onUpdated.addListener(function (tabId, info) {
@@ -67,31 +67,44 @@ export function frameRunner(tabId, frameId, domains, url) {
 					}, timeout);
 			});
 		},
-		async waitUntil(selector, retryCount = 10) {
+		async waitUntil(selector, timeout = 10e3) {
+			let retryCount = timeout / 1e3;
 			while (--retryCount >= 0) {
 				if (await this.eval((s) => !!document.querySelector(s), selector)) return true;
 				await utils.sleep(1e3);
 			}
 			return await this.eval((s) => !!document.querySelector(s), selector);
 		},
-		async click(selector, waitCount = 10) {
-			if (await this.waitUntil(selector, waitCount)) {
-				await this.eval((s) => document.querySelector(s).click(), selector);
+		async click(selector, timeout = 10e3) {
+			if (await this.waitUntil(selector, timeout)) {
+				await this.eval((s) => {
+					let el = document.querySelector(s);
+					el.dispatchEvent(new MouseEvent("click", {bubbles: true}));
+					el.click();
+				}, selector);
 				return true;
 			}
 			return false;
 		},
-		async value(selector, value, waitCount = 10) {
-			if (await this.waitUntil(selector, waitCount)) {
-				await this.eval((s, v) => (document.querySelector(s).value = v), selector, value);
+		async value(selector, value, timeout = 10e3) {
+			if (await this.waitUntil(selector, timeout)) {
+				await this.eval(
+					(s, v) => {
+						let el = document.querySelector(s);
+						el.value = v;
+						el.dispatchEvent(new Event("input", {bubbles: true}));
+					},
+					selector,
+					value
+				);
 				return true;
 			}
 			return false;
 		},
-		async press(selector, value, waitCount = 10) {
+		async press(selector, value, timeout = 10e3) {
 			if (typeof value === "number") value = {keyCode: value};
 			if (!value.keyCode && !value.charCode) throw "keypress need keyCode";
-			if (await this.waitUntil(selector, waitCount)) {
+			if (await this.waitUntil(selector, timeout)) {
 				await this.eval(
 					function press(s, v) {
 						if (typeof v === "number") v = {keyCode: v};
@@ -147,9 +160,10 @@ export function frameRunner(tabId, frameId, domains, url) {
 		/**
 		 * @param {string} url
 		 * @param {number} fuzzy 模糊匹配模式 3: 匹配host, 2 : 匹配path, 1: 严格匹配, 0: 最佳匹配
-		 * @param {number} [waitCount=10]
+		 * @param {number} [timeout=10e3]
 		 */
-		async getFrame(url, fuzzy, waitCount = 10) {
+		async getFrame(url, fuzzy, timeout = 10e3) {
+			let waitCount = timeout / 1e3;
 			fuzzy = fuzzy || 0;
 			let urlHost = url.replace(/^(https?:\/\/[^\/]+)[\s\S]*$/, "$1");
 			let urlPath = url.split("?")[0];
@@ -177,8 +191,6 @@ export function frameRunner(tabId, frameId, domains, url) {
 				if (--waitCount < 1) break;
 				await this.sleep(1e3);
 			}
-			console.error("no match url: " + url);
-			return this;
 		},
 	};
 }
@@ -219,12 +231,23 @@ export default function (task) {
 		 * @param {string} url
 		 */
 		require(url) {
-			if (!grant.has("require")) return Promise.reject("需要@grant require");
+			if (!grant.has("require") && !grant.has("loadjs")) return Promise.reject("需要@grant loadjs");
 			return axios.get(url, {validateStatus: () => true}).then(function ({data}) {
 				let module = {exports: {}};
-				new Function("exports", "module", data)(module.exports, module);
+				if (data.startsWith("var ")) {
+					data = data.replace(/^var\s+[^=]+=/, "return ");
+				}
+				let mod = new Function("exports", "module", data).call(
+					module.exports,
+					module.exports,
+					module
+				);
+				if (mod) module.exports = mod;
 				return module.exports;
 			});
+		},
+		loadjs(url) {
+			return inject.require(url);
 		},
 		/**
 		 * 获取指定url指定名字的cookie
@@ -249,6 +272,31 @@ export default function (task) {
 				chrome.cookies.set({url, name, value}, (x) => resolve(x && x.value));
 			});
 		},
+		/**
+		 * 获取指定url指定名字的localStorage
+		 * @param {string} url
+		 * @param {string} name
+		 */
+		getLocal(url, name) {
+			if (!grant.has("localStorage")) return Promise.reject("需要@grant localStorage");
+			return withHost(
+				url.replace(/(https?:\/\/)?([^\/]+)[^]*/, "$2"),
+				`localStorage.getItem(${JSON.stringify(name)})`
+			);
+		},
+		/**
+		 * 设置指定url指定名字的localStorage
+		 * @param {string} url
+		 * @param {string} name
+		 * @param {string} value
+		 */
+		setLocal(url, name, value) {
+			if (!grant.has("localStorage")) return Promise.reject("需要@grant localStorage");
+			return withHost(
+				url.replace(/(https?:\/\/)?([^\/]+)[^]*/, "$2"),
+				`localStorage.setItem(${JSON.stringify(name)}, ${JSON.stringify(value)})`
+			);
+		},
 		$(html) {
 			var div = document.createElement("div");
 			div.innerHTML = html;
@@ -258,12 +306,9 @@ export default function (task) {
 			if (!grant.has("notify")) throw "需要@grant notify";
 			let n = newNotification(task.name, {
 				body,
+				url,
 				icon: "chrome://favicon/https://" + task.domains[0],
 			});
-			n.onclick = function () {
-				this.close();
-				if (url) chrome.tabs.create({url});
-			};
 			setTimeout(function () {
 				n.close();
 			}, timeout || 300e3);

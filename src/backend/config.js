@@ -21,8 +21,8 @@ const config = {
 	cross: true,
 	allow_cross: {},
 	cross_header: "",
-	/** 开启捐赠, 跳转到京东返利链接 */
-	donate: false,
+	/** 通知地址 */
+	notify_url: "",
 };
 
 export default config;
