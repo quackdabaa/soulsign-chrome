@@ -190,24 +190,19 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
 		// 只有插件才加
 		var initiaor = details.initiator || details.documentUrl;
 		if (!initiaor || !/^\w+-extension:/.test(initiaor)) return;
-		var edit = false;
-		for (var i = 0; i < requestHeaders.length; ++i) {
-			var header = requestHeaders[i];
-			if (header.name === "_referer") {
-				edit = true;
-				for (let j = 0; j < requestHeaders.length; j++) {
-					if (/^(Referer|_referer)$/.test(requestHeaders[j].name)) requestHeaders.splice(j--, 1);
-				}
-				requestHeaders.unshift({name: "Referer", value: header.value});
-			} else if (header.name === "_origin") {
-				edit = true;
-				for (let j = 0; j < requestHeaders.length; j++) {
-					if (/^(Origin|_origin)$/.test(requestHeaders[j].name)) requestHeaders.splice(j--, 1);
-				}
-				requestHeaders.unshift({name: "Origin", value: header.value});
-			}
-		}
-		if (edit) return {requestHeaders};
+		let n = 0;
+		requestHeaders = requestHeaders
+			.filter((x) => {
+				return !/^(Referer|Origin|User-Agent)$/i.test(x.name);
+			})
+			.map((x) => {
+				if (x.name == "_referer") return {name: "Referer", value: x.value};
+				if (x.name == "_origin") return {name: "Origin", value: x.value};
+				if (x.name == "_user_agent") return {name: "User-Agent", value: x.value};
+				n++;
+				return x;
+			});
+		if (n < requestHeaders.length) return {requestHeaders};
 	},
 	{urls: ["<all_urls>"], types: ["xmlhttprequest"]},
 	utils.isFirefox ? ["blocking", "requestHeaders"] : ["blocking", "requestHeaders", "extraHeaders"]

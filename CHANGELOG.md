@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.1] - 2023-08-18
+
+### 🛠 修复
+
+- axios支持设置user-agent
+- 修复部分 headers 设置不生效的问题
+
 ## [2.5.0] - 2023-08-18
 
 ### 🎉 增加

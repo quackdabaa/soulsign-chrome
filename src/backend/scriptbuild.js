@@ -219,6 +219,13 @@ export default function (task) {
 				config.headers._origin = config.headers.origin;
 				delete config.headers.origin;
 			}
+			if (config.headers["User-Agent"]) {
+				config.headers._user_agent = config.headers["User-Agent"];
+				delete config.headers["user-agent"];
+			} else if (config.headers["user-agent"]) {
+				config.headers._user_agent = config.headers["user-agent"];
+				delete config.headers["user-agent"];
+			}
 		}
 		return config;
 	});
