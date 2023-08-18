@@ -8,6 +8,10 @@
 		</div>
 		<div v-if="tab == 0">
 			<label>
+				<span>开启浏览器通知,不会影响推送URL通知</span>
+				<input v-model="config.local_notify" type="checkbox" />
+			</label>
+			<label>
 				<span>掉线通知频率(秒),默认1小时</span>
 				<input v-model="config.notify_freq" type="number" />
 			</label>

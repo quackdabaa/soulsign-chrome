@@ -23,9 +23,7 @@ const TAIL_KEYWORD = "#soulsign-install";
 chrome.tabs.onUpdated.addListener(function (tabId, tabInfo, tab) {
 	if (tabInfo.url && tabInfo.url.endsWith(TAIL_KEYWORD)) {
 		chrome.tabs.update(tabId, {
-			url: chrome.runtime.getURL(
-				"/pages/options.html#" + tabInfo.url.slice(0, -TAIL_KEYWORD.length)
-			),
+			url: chrome.runtime.getURL("/options.html#" + tabInfo.url.slice(0, -TAIL_KEYWORD.length)),
 		});
 	}
 });
@@ -100,7 +98,7 @@ async function loop() {
 						// 距离上次不在线15分钟了
 						newNotification(`${task.name}不在线`, {
 							body: "点此去登录或禁用它",
-							url: task.loginURL || "/pages/options.html",
+							url: task.loginURL || "/options.html",
 							icon: `chrome://favicon/https://${task.domains[0]}`,
 						});
 						config.notify_at = now;
@@ -154,7 +152,7 @@ async function upgrade() {
 							break;
 						}
 					}
-					if (changed) chrome.tabs.create({url: "/pages/options.html#" + task.updateURL});
+					if (changed) chrome.tabs.create({url: "/options.html#" + task.updateURL});
 					else {
 						li.push(task.name);
 						utils.addTask(tasks, item);
@@ -168,7 +166,7 @@ async function upgrade() {
 	if (li.length) {
 		let title = li[0];
 		if (li.length > 1) title += `等${li.length}个脚本`;
-		newNotification(title + " 升级成功", {url: "/pages/options.html"});
+		newNotification(title + " 升级成功", {url: "/options.html"});
 	}
 	config.upgrade_at = now;
 	await utils.syncSave({config});

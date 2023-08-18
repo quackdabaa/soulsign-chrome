@@ -23,6 +23,7 @@ const config = {
 	cross_header: "",
 	/** 通知地址 */
 	notify_url: "",
+	local_notify: true,
 };
 
 export default config;

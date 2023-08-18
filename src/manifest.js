@@ -1,6 +1,6 @@
 module.exports = {
 	name: "魂签",
-	version: "2.5.1",
+	version: "2.5.2",
 	description: "自动签到",
 	author: "inu1255",
 

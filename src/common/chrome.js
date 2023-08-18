@@ -13,27 +13,13 @@ export function newNotification(title, opt) {
 			)
 			.catch(console.error);
 	}
+	if (!config.local_notify) return;
 	let n = new Notification(title);
 	n.onclick = function () {
 		this.close();
 		if (url) chrome.tabs.create({url});
 	};
 	return n;
-	// chrome.notifications.create(
-	// 	title,
-	// 	{
-	// 		type: "basic",
-	// 		title,
-	// 		iconUrl: "icons/48.png",
-	// 		message: "已经将旧版本的数据迁移到新版本，旧版本的数据已经清除",
-	// 		isClickable: true,
-	// 	},
-	// 	() => {
-	// 		chrome.notifications.onClicked.addListener(() => {
-	// 			chrome.tabs.create({url: "/pages/options.html"});
-	// 		});
-	// 	}
-	// );
 }
 
 export function withHost(host, code) {
