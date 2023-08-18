@@ -5,11 +5,12 @@ export function newNotification(title, opt) {
 	let {body, url} = Object.assign({}, opt);
 	if (body) title += "@" + body;
 	if (config.notify_url) {
+		let fullurl = /^https?:\/\//.test(url) ? url : "";
 		utils.axios
 			.get(
 				config.notify_url
 					.replace("$MSG", encodeURIComponent(title))
-					.replace("$URL", encodeURIComponent(url || ""))
+					.replace("$URL", encodeURIComponent(fullurl))
 			)
 			.catch(console.error);
 	}

@@ -95,7 +95,7 @@ async function loop() {
 					// 不在线，直接跳过
 					err_cnt++;
 					if (config.notify_at + config.notify_freq * 1e3 < now) {
-						// 距离上次不在线15分钟了
+						// 距离上次通知很久了
 						newNotification(`${task.name}不在线`, {
 							body: "点此去登录或禁用它",
 							url: task.loginURL || "/options.html",
@@ -119,7 +119,19 @@ async function loop() {
 				await race(utils.runTask(task));
 			}
 		}
-		if (task.failure_at > task.success_at) err_cnt++;
+		if (task.failure_at > task.success_at) {
+			err_cnt++;
+			let now = Date.now();
+			if (config.notify_at + config.notify_freq * 1e3 < now) {
+				// 距离上次通知很久了
+				newNotification(`${task.name}`, {
+					body: "签到失败",
+					url: "/options.html",
+				});
+				config.notify_at = now;
+				await utils.syncSave({config});
+			}
+		}
 		if (changed) await utils.setTask(task);
 	}
 	if (err_cnt) {
