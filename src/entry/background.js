@@ -74,8 +74,7 @@ function init() {
 
 async function loop() {
 	let tasks = await utils.getTasks();
-	let today =
-		new Date(Date.now() - config.begin_at).setHours(0, 0, 0, 0).getTime() + config.begin_at;
+	let today = new Date(Date.now() - config.begin_at).setHours(0, 0, 0, 0) + config.begin_at;
 	let err_cnt = 0;
 	for (let task of tasks) {
 		if (!task.enable) continue;
