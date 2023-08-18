@@ -2,6 +2,7 @@ const path = require("path");
 const fs = require("fs");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
 const manifest = require("./src/manifest");
+const pkg = require("./package.json");
 
 const isDevMode = process.env.NODE_ENV === "development";
 
@@ -20,6 +21,7 @@ module.exports = {
 						transform(content, path) {
 							var mod = {exports: {}};
 							new Function("module", "exports", content.toString())(mod, mod.exports);
+							mod.exports.version = pkg.version;
 							return JSON.stringify(mod.exports, null, 2);
 						},
 					},

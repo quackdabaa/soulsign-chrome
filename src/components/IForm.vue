@@ -1,9 +1,11 @@
 <template>
 	<mu-dialog
-		class="components-i-form"
+		:overlay-close="false"
+		class="i-form"
 		:title="title"
 		:width="width"
 		:open="Boolean(open)"
+		:fullscreen="fullscreen"
 		scrollable
 		@update:open="close"
 	>
@@ -66,6 +68,9 @@
 					:max-length="param.maxlength"
 					:disabled="param.disabled"
 					:placeholder="param.placeholder"
+					full-width
+					multi-line
+					:rows="Math.min((body[param.name] || '').split('\n').length, 10)"
 				>
 					<mu-button
 						v-if="param.append"
@@ -81,6 +86,14 @@
 		<mu-button slot="actions" flat color="primary" :disabled="disabled" @click="onSubmit"
 			>确定</mu-button
 		>
+		<mu-button
+			style="position: absolute; top: 16px; right: 16px"
+			color="blue"
+			icon
+			@click="fullscreen = !fullscreen"
+		>
+			<mu-icon :value="fullscreen ? 'fullscreen_exit' : 'fullscreen'"></mu-icon>
+		</mu-button>
 	</mu-dialog>
 </template>
 <script>
@@ -98,6 +111,7 @@ export default {
 		return {
 			disabled: false,
 			body: {},
+			fullscreen: false,
 		};
 	},
 	computed: {
@@ -164,6 +178,18 @@ export default {
 };
 </script>
 <style lang="less">
-.components-i-form {
+.i-form {
+	> .mu-dialog {
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		&.mu-dialog-fullscreen {
+			position: absolute;
+		}
+		> .mu-dialog-body {
+			max-height: unset !important;
+			flex: 1;
+		}
+	}
 }
 </style>

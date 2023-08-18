@@ -1,6 +1,7 @@
 <template>
 	<mu-dialog
 		v-loading="loading"
+		:overlay-close="false"
 		title="脚本推荐"
 		:width="360"
 		:open="Boolean(open)"

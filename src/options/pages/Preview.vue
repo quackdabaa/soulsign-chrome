@@ -1,6 +1,7 @@
 <template>
 	<mu-dialog
 		v-loading="loading"
+		:overlay-close="false"
 		title="添加/更新脚本?"
 		:width="360"
 		:open="Boolean(open)"

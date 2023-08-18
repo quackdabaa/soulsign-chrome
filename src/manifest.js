@@ -1,6 +1,5 @@
-module.exports = {
+const manifest = {
 	name: "魂签",
-	version: "2.5.2",
 	description: "自动签到",
 	author: "inu1255",
 
@@ -65,3 +64,11 @@ module.exports = {
 	// 	},
 	// ],
 };
+
+if (manifest.manifest_version == 2) {
+	delete manifest.host_permissions;
+	let permissions_v3 = new Set(["offscreen"]);
+	manifest.permissions = manifest.permissions.filter((x) => !permissions_v3.has(x));
+}
+
+module.exports = manifest;

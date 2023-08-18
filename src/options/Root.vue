@@ -9,9 +9,6 @@
 			<mu-button slot="right" flat @click="go('https://soulsign.inu1255.cn/', 1)"
 				>脚本推荐</mu-button
 			>
-			<mu-button slot="right" flat @click="go('https://space.bilibili.com/8454380', 1)"
-				>施舍</mu-button
-			>
 			<mu-button slot="right" flat @click="go('https://github.com/inu1255/soulsign-chrome', 1)"
 				>源码</mu-button
 			>
@@ -103,6 +100,7 @@
 			</mu-data-table>
 		</mu-container>
 		<mu-dialog
+			:overlay-close="false"
 			:width="480"
 			:open="Boolean(body)"
 			:fullscreen="fullscreen"
@@ -567,6 +565,7 @@ export default {
 				} catch (error) {
 					_params = {};
 				}
+				if (!params) return this.$toast.error(`脚本设置 @param 参数`);
 				this.debugTask = {name, _params, params};
 			} catch (e) {
 				this.$toast.error(`脚本有错误，请查看develop console`);
