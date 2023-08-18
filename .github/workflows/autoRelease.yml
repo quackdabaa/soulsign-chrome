@@ -69,7 +69,7 @@ jobs:
         with:
           result-encoding: string
           script: |
-            const manifest = require(`${process.env.GITHUB_WORKSPACE}/build/manifest.json`);
+            const manifest = require(`${process.env.GITHUB_WORKSPACE}/dist/manifest.json`);
             return manifest.version;
 
       - name: Compare version again
@@ -124,7 +124,7 @@ jobs:
         uses: peaceiris/actions-gh-pages@v3.6.4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./build
+          publish_dir: ./dist
           user_name: 'github-actions[bot]'
           user_email: 'github-actions[bot]@users.noreply.github.com'
           full_commit_message: Release v${{ steps.get-manifest-version.outputs.result }}
