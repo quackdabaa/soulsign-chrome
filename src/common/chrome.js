@@ -6,7 +6,11 @@ export function newNotification(title, opt) {
 	if (body) title += "@" + body;
 	if (config.notify_url) {
 		utils.axios
-			.get(config.notify_url.replace("$MSG", encodeURIComponent(title)).replace("$URL", url || ""))
+			.get(
+				config.notify_url
+					.replace("$MSG", encodeURIComponent(title))
+					.replace("$URL", encodeURIComponent(url || ""))
+			)
 			.catch(console.error);
 	}
 	let n = new Notification(title);

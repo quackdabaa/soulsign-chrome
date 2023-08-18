@@ -40,7 +40,7 @@
 				<input
 					v-model="config.notify_url"
 					class="full"
-					placeholder="如: https://xxx.com/text=$MSG"
+					placeholder="如: https://xxx.com/text=$MSG&url=$URL"
 				/>
 			</label>
 			<div class="tar footer">

@@ -84,17 +84,18 @@ exports.check = async function () {
 说明:
 
 1. 前面的 ==UserScript== 不可少
-1. @name 脚本名称
-1. @namespace 脚本官方网址
-1. @version 脚本版本
-1. @author 脚本作者
-1. @loginURL 登录链接(帮助用户通过这个链接去登录)
-1. @expire 会话过期时间(毫秒),系统会隔一段时间调用一次 check 接口检查在线状态并保持会话活跃
-1. @domain 请求域名(向用户申明该脚本会访问的域名)
-1. @domain 另一个请求域名(@domain 支持多个)
-1. @param 参数键 [参数类型,选填,默认 text] 参数说明
-1. (@author,@name)唯一确定一个脚本,重复会被当成一个脚本
-1. 后面的 ==/UserScript== 不可少
+2. @name 脚本名称
+3. @namespace 脚本官方网址
+4. @version 脚本版本
+5. @author 脚本作者
+6. @loginURL 登录链接(帮助用户通过这个链接去登录)
+7. @expire 会话过期时间(毫秒),系统会隔一段时间调用一次 check 接口检查在线状态并保持会话活跃
+8. @freq 脚本执行频率(毫秒),系统会隔一段时间调用一次 run 接口执行签到(默认每天调一次)
+9. @domain 请求域名(向用户申明该脚本会访问的域名)
+10. @domain 另一个请求域名(@domain 支持多个)
+11. @param 参数键 [参数类型,选填,默认 text] 参数说明
+12. (@author,@name)唯一确定一个脚本,重复会被当成一个脚本
+13. 后面的 ==/UserScript== 不可少
 
 更多[demos](https://github.com/inu1255/soulsign-chrome/tree/master/static/demos.md)
 

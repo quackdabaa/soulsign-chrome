@@ -1,7 +1,6 @@
 import config from "../backend/config";
 import utils from "../backend/utils";
 import backapi from "../backend/backapi";
-import dayjs from "dayjs";
 import {newNotification} from "@/common/chrome";
 
 chrome.runtime.onMessage.addListener(function (info, sender, cb) {
@@ -75,7 +74,8 @@ function init() {
 
 async function loop() {
 	let tasks = await utils.getTasks();
-	let today = dayjs().add(-config.begin_at, "second").startOf("day").add(config.begin_at, "second");
+	let today =
+		new Date(Date.now() - config.begin_at).setHours(0, 0, 0, 0).getTime() + config.begin_at;
 	let err_cnt = 0;
 	for (let task of tasks) {
 		if (!task.enable) continue;
@@ -114,8 +114,8 @@ async function loop() {
 				task.online_at = now;
 			}
 		}
-		if (dayjs(task.success_at).isBefore(today)) {
-			// 今天没有执行成功过
+		if (task.freq ? task.success_at + task.freq < Date.now() : task.success_at < today) {
+			// 到达运行频率 | 今天没有执行成功过
 			if (task.failure_at + config.retry_freq * 1e3 <= new Date().getTime()) {
 				// 运行失败后要歇10分钟
 				changed = true;

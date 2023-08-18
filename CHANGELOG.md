@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.0] - 2023-08-18
+
+### 🎉 增加
+
+- 增加 `getLocal` 获取 `localStorage`, 参考脚本 [阿里云 获取 localStorage](./static//demos/aliyundrive.js)
+- 支持设置通知URL, 掉线时向通知URL推送通知
+- 脚本支持 @freq 自定义运行频率
+
 ## [2.4.3] - 2021-02-08
 
 ### 🛠 修复

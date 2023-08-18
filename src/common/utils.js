@@ -129,6 +129,7 @@ const utils = {
 		else if (!task.domains) task.domains = [task.domain];
 		if (task.grant && !task.grants) task.grants = task.grant.split(",");
 		if (task.param && !task.params) task.params = [task.param];
+		if (task.freq) task.freq = +task.freq || 0;
 		if (task.params) {
 			task._params = {};
 			task.params = task.params.map((x) => {
