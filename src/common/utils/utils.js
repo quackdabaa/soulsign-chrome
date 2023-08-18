@@ -1558,6 +1558,12 @@ export function fixBMP(buf) {
 	}
 }
 
+export function CamelCase(str) {
+	return str.replace(/(^|[-_])(\w)/g, function (all, x1, letter) {
+		return letter.toUpperCase();
+	});
+}
+
 export function formatError(obj) {
 	if (obj && typeof obj === "object") {
 		if (typeof obj.msg === "string") return obj.msg;
