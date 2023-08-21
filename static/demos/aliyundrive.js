@@ -76,10 +76,6 @@ async function run(param) {
 
 async function check(param) {
 	try {
-		// 通过 getLocal 获取 localStorage 中的 refresh_token
-		param.refresh_token = await getLocal("https://www.aliyundrive.com/", "token").then(
-			(x) => JSON.parse(x).refresh_token
-		);
 		await axios.post(
 			"https://auth.aliyundrive.com/v2/account/token",
 			{
@@ -94,6 +90,10 @@ async function check(param) {
 		);
 		return true;
 	} catch (error) {
+		// 通过 getLocal 获取 localStorage 中的 refresh_token
+		param.refresh_token = await getLocal("https://www.aliyundrive.com/", "token").then(
+			(x) => JSON.parse(x).refresh_token
+		);
 		console.log("更新 access_token 失败");
 		console.error(error);
 		return false;

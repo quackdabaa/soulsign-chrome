@@ -52,7 +52,6 @@ function init() {
 									sync.tasks.push(name);
 									local[name] = task;
 								}
-								newNotification("升级成功");
 								resolve(Promise.all([utils.localSave(local), utils.syncSave(sync)]));
 							});
 						});
@@ -146,7 +145,6 @@ async function upgrade() {
 	let now = Date.now();
 	if (config.upgrade_at + config.upgrade_freq * 1e3 > now) return;
 	console.log("开始检查更新");
-	newNotification("开始检查并更新脚本");
 	let tasks = await utils.getTasks();
 	let li = [];
 	for (let task of tasks) {
@@ -260,3 +258,9 @@ async function main() {
 main().catch((err) => {
 	console.log(`崩溃`, err);
 });
+
+if ("serviceWorker" in navigator) {
+	navigator.serviceWorker.getRegistrations().then((registrations) => {
+		registrations.forEach((sw) => sw.unregister());
+	});
+}

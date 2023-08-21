@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.5] - 2023-08-21
+
+### 🛠 修复
+
+- 删除serviceWorker修复2.4.3版本升级到2.5.0版本后的问题
+如果 2.4.3 升级到 2.5.5, 请重新加载插件两次
+
 ## [2.5.4] - 2023-08-18
 
 ### 🎉 增加
