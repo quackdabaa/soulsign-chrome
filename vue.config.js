@@ -43,6 +43,33 @@ module.exports = {
 		if (isDevMode) {
 			config.devtool = "source-map";
 		}
+		let vueRule = config.module.rules.find((x) => x.test.test(".vue"));
+		vueRule.use.unshift({
+			loader: require.resolve("./lib/auto-loader.js"),
+			options: {
+				tagMapFn(tag, componentName) {
+					if (componentName === "IBranch") return "@/components/ITree/IBranch";
+					if (tag.startsWith("i-")) return "@/components/" + componentName + ".vue";
+					if (tag.startsWith("el-")) {
+						return `element-ui/lib/${tag.substr(3)}`;
+					}
+					if (tag.startsWith("a-select-option")) {
+						return `@/components/a-select-option.js`;
+					}
+					if (tag.startsWith("a-")) {
+						return `ant-design-vue/es/${tag.substr(2)}/index.js`;
+					}
+				},
+				sortFn(a, b) {
+					const order = "aeih";
+					var ia = order.indexOf(a[0].toLowerCase());
+					var ib = order.indexOf(b[0].toLowerCase());
+					if (ia === -1) ia = order.length;
+					if (ib === -1) ib = order.length;
+					return ia - ib;
+				},
+			},
+		});
 	},
 	css: {
 		extract: false, // Make sure the css is the same

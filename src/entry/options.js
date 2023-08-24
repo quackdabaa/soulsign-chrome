@@ -16,7 +16,6 @@ import Loading from "muse-ui-loading";
 // 提示框
 import "muse-ui-message/dist/muse-ui-message.css";
 import Message from "muse-ui-message";
-import "../components";
 import "../common/base.less";
 import "@/common/polyfill";
 

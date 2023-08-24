@@ -2,7 +2,7 @@ const manifest = {
 	name: "魂签",
 	description: "自动签到",
 	author: "inu1255",
-
+	homepage_url: "https://github.com/inu1255/soulsign-chrome",
 	manifest_version: 2,
 	icons: {
 		16: "icons/16.png",
