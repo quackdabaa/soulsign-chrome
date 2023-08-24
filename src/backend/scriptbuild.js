@@ -2,9 +2,10 @@
  * 生成安全的脚本
  */
 import axios from "axios";
-import utils from "./utils";
 import Listener from "@/common/Listener";
 import {newNotification, withHost} from "@/common/chrome";
+import {sleep} from "@/common/utils";
+import {TASK_EXT, extTask} from "./utils";
 
 const evt = new Listener();
 chrome.tabs.onUpdated.addListener(function (tabId, info) {
@@ -71,7 +72,7 @@ export function frameRunner(tabId, frameId, domains, url) {
 			let retryCount = timeout / 1e3;
 			while (--retryCount >= 0) {
 				if (await this.eval((s) => !!document.querySelector(s), selector)) return true;
-				await utils.sleep(1e3);
+				await sleep(1e3);
 			}
 			return await this.eval((s) => !!document.querySelector(s), selector);
 		},
@@ -154,9 +155,7 @@ export function frameRunner(tabId, frameId, domains, url) {
 				});
 			});
 		},
-		sleep(ms) {
-			return new Promise((resolve) => setTimeout(resolve, ms));
-		},
+		sleep,
 		/**
 		 * @param {string} url
 		 * @param {number} fuzzy 模糊匹配模式 3: 匹配host, 2 : 匹配path, 1: 严格匹配, 0: 最佳匹配
@@ -232,7 +231,7 @@ export default function (task) {
 	let grant = new Set(task.grants);
 	let inject = {
 		axios: request,
-		tools: utils.extTask(),
+		tools: extTask(),
 		/**
 		 * 引入第三方JS脚本
 		 * @param {string} url
@@ -393,7 +392,7 @@ export default function (task) {
 	}
 	let inject_keys = Object.keys(inject);
 	let inject_values = Object.values(inject);
-	task = Object.assign({}, utils.TASK_EXT, task);
+	task = Object.assign({}, TASK_EXT, task);
 	let module = {exports: {}};
 	new Function("exports", "module", ...inject_keys, task.code)(
 		module.exports,

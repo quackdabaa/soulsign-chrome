@@ -97,7 +97,7 @@
 	</mu-dialog>
 </template>
 <script>
-import utils from "../common/client";
+import {clearKeys, pick} from "@/common/utils";
 
 export default {
 	props: {
@@ -131,7 +131,7 @@ export default {
 		async onSubmit() {
 			let ok = await this.$refs.form.validate();
 			if (!ok) return;
-			let form = utils.clearKeys(this.body, this.open);
+			let form = clearKeys({...this.body}, this.open);
 			if (!Object.keys(form).length) return this.$toast.message("什么也没有做 -.-");
 			let data;
 			if (this.open.id) {
@@ -154,7 +154,7 @@ export default {
 			return url;
 		},
 		upload(param) {
-			utils.pick().then((file) => this.toURL(file, param));
+			pick().then((file) => this.toURL(file, param));
 		},
 		paste(param, e) {
 			if (e.clipboardData.items) {

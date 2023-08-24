@@ -65,7 +65,8 @@
 	</div>
 </template>
 <script>
-import utils from "../common/client";
+import {sendMessage} from "@/common/chrome";
+import {copy} from "@/common/utils";
 
 export default {
 	data: function () {
@@ -76,7 +77,7 @@ export default {
 		};
 	},
 	async mounted() {
-		this.config = await utils.request("config/get");
+		this.config = await sendMessage("config/get");
 		chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
 			if (!tabs.length) return;
 			let url = tabs[0].url;
@@ -88,10 +89,10 @@ export default {
 	},
 	methods: {
 		save() {
-			utils.request("config/set", this.config);
+			sendMessage("config/set", this.config);
 		},
 		copyCookie() {
-			utils.copy(this.cookie);
+			copy(this.cookie);
 		},
 		saveCookie() {
 			chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {

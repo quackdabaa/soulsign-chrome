@@ -1,15 +1,10 @@
-import utils from "../common/utils";
+import {diff, fromNow} from "@/backend/utils";
+import {format} from "@/common/utils";
 
 const filter = {
-	fromNow: utils.fromNow,
-	diff: utils.diff,
-	format: utils.format,
-	date(value) {
-		return utils.format(value, "YYYY-MM-DD");
-	},
-	time(value) {
-		return utils.format(value, "HH:mm:ss");
-	},
+	fromNow: fromNow,
+	diff: diff,
+	format: (v) => format("YYYY-MM-DD HH:mm:ss", v),
 };
 
 export default filter;

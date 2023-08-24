@@ -1,18 +1,19 @@
 import config from "@/backend/config";
-import utils from "@/backend/utils";
+import Axios from "axios";
+import {deepClone} from "./utils";
+
+export const isFirefox = /firefox/i.test(navigator.userAgent);
 
 export function newNotification(title, opt) {
 	let {body, url} = Object.assign({}, opt);
 	if (body) title += "@" + body;
 	if (config.notify_url) {
 		let fullurl = /^https?:\/\//.test(url) ? url : "";
-		utils.axios
-			.get(
-				config.notify_url
-					.replace("$MSG", encodeURIComponent(title))
-					.replace("$URL", encodeURIComponent(fullurl))
-			)
-			.catch(console.error);
+		Axios.get(
+			config.notify_url
+				.replace("$MSG", encodeURIComponent(title))
+				.replace("$URL", encodeURIComponent(fullurl))
+		).catch(console.error);
 	}
 	if (!config.local_notify) return;
 	let n = new Notification(title);
@@ -23,6 +24,12 @@ export function newNotification(title, opt) {
 	return n;
 }
 
+/**
+ * 在指定域名下执行代码
+ * @param {string} host 域名
+ * @param {string} code
+ * @returns 返回执行结果
+ */
 export function withHost(host, code) {
 	return new Promise((resolve, reject) => {
 		function exec(tab, fn) {
@@ -50,4 +57,58 @@ export function withHost(host, code) {
 			});
 		});
 	});
+}
+
+export function localSave(data) {
+	return new Promise(function (resolve, reject) {
+		if (isFirefox) data = deepClone(data);
+		chrome.storage.local.set(data, resolve);
+	});
+}
+
+export function localGet(keys) {
+	return new Promise(function (resolve, reject) {
+		chrome.storage.local.get(keys, function (data) {
+			if (typeof keys === "string") resolve(data && data[keys]);
+			else resolve(data);
+		});
+	});
+}
+
+export function syncSave(data) {
+	return new Promise(function (resolve, reject) {
+		if (isFirefox) data = deepClone(data);
+		chrome.storage.sync.set(data, resolve);
+	});
+}
+
+export function syncGet(keys) {
+	return new Promise(function (resolve, reject) {
+		chrome.storage.sync.get(keys, function (data) {
+			if (typeof keys === "string") resolve(data && data[keys]);
+			else resolve(data);
+		});
+	});
+}
+
+/**
+ * 向background发送请求
+ * @param {string} path
+ * @param {any} body
+ * @returns
+ */
+export function sendMessage(path, body) {
+	return new Promise(function (resolve, reject) {
+		chrome.runtime.sendMessage({path, body}, function (x) {
+			if (x && x.no == 200) return resolve(x.data);
+			reject(x && x.msg);
+		});
+	});
+}
+
+/**
+ * @returns {chrome.runtime.getManifest}
+ */
+export function getManifest() {
+	return Object.assign({version: "2.1.0"}, chrome.runtime.getManifest());
 }

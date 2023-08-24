@@ -145,7 +145,7 @@
 				<mu-divider></mu-divider>
 				<ul class="scrollY">
 					<li v-for="(line, i) in log.logs" :key="i">
-						<span class="small">{{ line.time | format("YYYY-MM-DD hh:mm:ss") }}</span>
+						<span class="small">{{ format(line.time) }}</span>
 						<span :class="line.type || 'info'">{{ line.text }}</span>
 					</li>
 				</ul>
@@ -174,12 +174,15 @@
 	</div>
 </template>
 <script>
-import utils from "../common/client";
 import Cross from "./pages/Cross.vue";
 import Preview from "./pages/Preview.vue";
 import Details from "./pages/Details.vue";
 import JSZip from "jszip";
-import beUtils from "../backend/utils";
+import {getManifest, localSave, sendMessage} from "@/common/chrome";
+import {compileTask, filTask, buildScript} from "@/backend/utils";
+import compareVersions from "compare-versions";
+import {download, format, pick, readFile} from "@/common/utils";
+import axios from "@/common/axios";
 
 export default {
 	components: {
@@ -359,18 +362,18 @@ export default {
 	},
 	methods: {
 		async refresh() {
-			let tasks = await utils.request("task/list");
+			let tasks = await sendMessage("task/list");
 			let oldTasks = [];
 			for (let task of tasks) {
 				task.key = task.author + "/" + task.name;
 				if (!task.result.summary) oldTasks.push(task);
 			}
 			for (let task of oldTasks) {
-				beUtils.filTask(task);
-				beUtils.localSave({[task.key]: task});
+				filTask(task);
+				localSave({[task.key]: task});
 			}
 			this.tasks = tasks;
-			this.manifest = beUtils.getManifest();
+			this.manifest = getManifest();
 		},
 		domain3(domain) {
 			return domain.split(".").slice(-3).join(".");
@@ -382,9 +385,9 @@ export default {
 			for (let task of tasks) {
 				if (task.updateURL) {
 					try {
-						let {data} = await utils.axios.get(task.updateURL);
-						let item = utils.compileTask(data);
-						if (beUtils.compareVersions(item.version, task.version) > 0) {
+						let {data} = await axios.get(task.updateURL);
+						let item = compileTask(data);
+						if (compareVersions(item.version, task.version) > 0) {
 							map[task.key] = item.version;
 						}
 					} catch (error) {
@@ -398,7 +401,7 @@ export default {
 			let task = this.settingTask.task; // this.tasks[this.settingTask.i]
 			Object.assign(task._params, body);
 			if (
-				await utils.request("task/set", {
+				await sendMessage("task/set", {
 					author: task.author,
 					name: task.name,
 					_params: task._params,
@@ -421,27 +424,27 @@ export default {
 			this.$with("running", async () => {
 				let prev = row.success_at;
 				this.$toast.message(`${row.name} 开始执行`);
-				let task = await utils.request("task/run", row.author + "/" + row.name);
+				let task = await sendMessage("task/run", row.author + "/" + row.name);
 				if (task) Object.assign(row, task);
 				if (row.success_at == prev) this.$toast.error(`${row.name} 执行失败`);
 				else this.$toast.success(`${row.name} 执行成功`);
 			});
 		},
 		async upload() {
-			let file = await utils.pick(".soulsign");
+			let file = await pick(".soulsign");
 			this.$with(async () => {
 				try {
 					var zip = new JSZip();
 					await zip.loadAsync(file);
 					var text = await zip.file("config.json").async("string");
 					let config = JSON.parse(text);
-					await utils.request("config/set", config);
+					await sendMessage("config/set", config);
 					var text = await zip.file("tasks.json").async("string");
 					let tasks = JSON.parse(text);
 					let add_cnt = 0;
 					let set_cnt = 0;
 					for (let task of tasks) {
-						if (await utils.request("task/add", task)) set_cnt++;
+						if (await sendMessage("task/add", task)) set_cnt++;
 						else add_cnt++;
 					}
 					this.$toast.success(`成功导入${add_cnt}条,更新${set_cnt}条`);
@@ -452,17 +455,17 @@ export default {
 			});
 		},
 		async download() {
-			let config = await utils.request("config/get");
+			let config = await sendMessage("config/get");
 			var zip = new JSZip();
 			zip.file("config.json", JSON.stringify(config));
 			zip.file("tasks.json", JSON.stringify(this.tasks));
 			let content = await zip.generateAsync({type: "blob"});
-			utils.download(content, utils.format(Date.now(), "YYYY-MM-DD_hh-mm-ss.soulsign"));
+			download(content, format("YYYY-MM-DD_hh-mm-ss.soulsign"));
 		},
 		async clear() {
 			for (let task of this.tasks) {
 				let {author, name} = task;
-				await utils.request("task/set", {
+				await sendMessage("task/set", {
 					author,
 					name,
 					ok: 0,
@@ -478,7 +481,7 @@ export default {
 		},
 		async del(row) {
 			let {result} = await this.$message.confirm("你确定要删除吗?");
-			if (result) utils.request("task/del", row.author + "/" + row.name);
+			if (result) sendMessage("task/del", row.author + "/" + row.name);
 		},
 		add(task) {
 			this.$with(async () => {
@@ -487,7 +490,7 @@ export default {
 					location.href = "#";
 				}
 				try {
-					await utils.request("task/add", task);
+					await sendMessage("task/add", task);
 					this.$toast.success("添加/修改成功");
 				} catch (e) {
 					console.log(e);
@@ -498,7 +501,7 @@ export default {
 		},
 		onAdd() {
 			try {
-				let task = utils.compileTask(this.body.code);
+				let task = compileTask(this.body.code);
 				this.add(task);
 			} catch (error) {
 				this.$toast.error(error + "");
@@ -507,18 +510,18 @@ export default {
 		async toggle(row) {
 			let {author, name, enable} = row;
 			enable = !enable;
-			await utils.request("task/set", {author, name, enable});
+			await sendMessage("task/set", {author, name, enable});
 			row.enable = enable;
 		},
 		async pick() {
-			let file = await utils.pick();
-			this.body.code = await utils.readAsText(file);
+			let file = await pick();
+			this.body.code = await readFile(file);
 		},
 		async drop(e) {
 			let files = e.dataTransfer.files;
 			if (files.length > 0) {
 				e.preventDefault();
-				this.body.code = await utils.readAsText(files[0]);
+				this.body.code = await readFile(files[0]);
 			}
 		},
 		async paste(e) {
@@ -530,7 +533,7 @@ export default {
 					if (isEmpty && item.kind == "string" && item.type == "text/plain") {
 						item.getAsString((r) => {
 							if (/^https?:\/\//.test(r)) {
-								utils.axios.get(r).then(({data}) => {
+								axios.get(r).then(({data}) => {
 									document.execCommand("undo");
 									this.body.code = data;
 								});
@@ -558,7 +561,7 @@ export default {
 		},
 		setDebugParam(text) {
 			try {
-				let task = utils.buildScript(text);
+				let task = buildScript(text);
 				let {name, _params, params} = task;
 				try {
 					_params = this.debugTaskParam || {};
@@ -575,7 +578,7 @@ export default {
 		async testTask(key, text) {
 			try {
 				let _params = this.debugTaskParam || {};
-				let task = utils.buildScript(text);
+				let task = buildScript(text);
 				let ok = await task[key](_params);
 				this.$toast.success(`返回结果: ${ok}`);
 				console.log(ok);
@@ -588,9 +591,9 @@ export default {
 			let m = /^https?:\/\/([^\/]+)/.exec(body.url);
 			if (!m) return this.$toast.error(`URL格式不正确`);
 			let domains = new Set([m[1]]);
-			utils.request("record/start", body);
+			sendMessage("record/start", body);
 			window.onfocus = async () => {
-				let code = await utils.request("record/end");
+				let code = await sendMessage("record/end");
 				window.onfocus = null;
 				code.replace(/https?:\/\/([^\/]+)/g, function (x0, x1) {
 					domains.add(x1);
@@ -623,6 +626,9 @@ exports.check = async function(param) {
 `;
 				this.edit({code});
 			};
+		},
+		format(v) {
+			return format("YYYY-MM-DD hh:mm:ss", v);
 		},
 	},
 };

@@ -1,11 +1,7 @@
 import Vue from "vue";
-import filter from "./filter";
 import IDate from "./IDate.vue";
 import IRate from "./IRate.vue";
 import IForm from "./IForm.vue";
-for (let k in filter) {
-	Vue.filter(k, filter[k]);
-}
 Vue.component("IDate", IDate);
 Vue.component("IRate", IRate);
 Vue.component("IForm", IForm);

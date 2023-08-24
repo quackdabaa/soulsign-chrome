@@ -36,9 +36,7 @@
 	</mu-container>
 </template>
 <script>
-import Vue from "vue";
-import utils from "../../common/client";
-
+import {sendMessage} from "@/common/chrome";
 export default {
 	data: function () {
 		return {
@@ -89,7 +87,7 @@ export default {
 			this.saveCrose();
 		},
 		async getCrossList() {
-			let config = await utils.request("config/get");
+			let config = await sendMessage("config/get");
 			let allow_cross = config.allow_cross;
 			let list = [];
 			for (let k in allow_cross) {
@@ -109,7 +107,7 @@ export default {
 			for (let item of this.cross_list) {
 				allow_cross[item.site] = item.enable | item.cookie;
 			}
-			return utils.request("config/set", {allow_cross, cross_header});
+			return sendMessage("config/set", {allow_cross, cross_header});
 		},
 	},
 };

@@ -17,8 +17,8 @@ import Loading from "muse-ui-loading";
 import "muse-ui-message/dist/muse-ui-message.css";
 import Message from "muse-ui-message";
 import "../components";
-import "../common/extends";
 import "../common/base.less";
+import "@/common/polyfill";
 
 import VueClipboard from "vue-clipboard2";
 Vue.use(MuseUI);

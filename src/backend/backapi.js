@@ -1,7 +1,8 @@
+import {syncSave} from "@/common/chrome";
 import config from "./config";
-import utils from "./utils";
 import scriptbuild from "./scriptbuild";
 import {getCode, beginCode, onCode, startRecord} from "./scriptrecord";
+import {addTask, delTask, getTasks, runTask, setTask} from "./utils";
 
 export default {
 	"config/get"() {
@@ -9,22 +10,22 @@ export default {
 	},
 	"config/set"(body) {
 		Object.assign(config, body);
-		return utils.syncSave({config});
+		return syncSave({config});
 	},
 	"task/list"() {
-		return utils.getTasks();
+		return getTasks();
 	},
 	"task/del"(name) {
-		return utils.delTask(name);
+		return delTask(name);
 	},
 	"task/add"(task) {
-		return utils.addTask(scriptbuild(task));
+		return addTask(scriptbuild(task));
 	},
 	"task/set"(task) {
-		return utils.setTask(task);
+		return setTask(task);
 	},
 	"task/run"(name) {
-		return utils.runTask(name);
+		return runTask(name);
 	},
 	"record/start"(data) {
 		return startRecord(data);
