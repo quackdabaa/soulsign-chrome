@@ -1,6 +1,5 @@
 import config from "@/backend/config";
 import Axios from "axios";
-import {deepClone} from "./utils";
 
 export const isFirefox = /firefox/i.test(navigator.userAgent);
 
@@ -61,7 +60,7 @@ export function withHost(host, code) {
 
 export function localSave(data) {
 	return new Promise(function (resolve, reject) {
-		if (isFirefox) data = deepClone(data);
+		if (isFirefox) data = JSON.parse(JSON.stringify(data));
 		chrome.storage.local.set(data, resolve);
 	});
 }
@@ -77,7 +76,7 @@ export function localGet(keys) {
 
 export function syncSave(data) {
 	return new Promise(function (resolve, reject) {
-		if (isFirefox) data = deepClone(data);
+		if (isFirefox) data = JSON.parse(JSON.stringify(data));
 		chrome.storage.sync.set(data, resolve);
 	});
 }

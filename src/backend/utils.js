@@ -265,6 +265,7 @@ export async function runTask(task) {
  */
 export function setTask(task) {
 	let name = task.author + "/" + task.name;
+	console.log("setTask", name, task);
 	return getTask(name).then(function (oldtask) {
 		if (oldtask) {
 			Object.assign(oldtask, task);
