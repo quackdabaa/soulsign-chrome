@@ -98,7 +98,6 @@ async function loop() {
 						newNotification(`${task.name}不在线`, {
 							body: "点此去登录或禁用它",
 							url: task.loginURL || "/options.html",
-							icon: `chrome://favicon/https://${task.domains[0]}`,
 						});
 						config.notify_at = now;
 						await utils.syncSave({config});

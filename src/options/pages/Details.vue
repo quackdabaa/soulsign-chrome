@@ -37,7 +37,7 @@
 				<td>
 					<div class="detail-icon">
 						<mu-avatar :size="20">
-							<img :src="'chrome://favicon/' + row.url" />
+							<img :src="$icon(row.url)" />
 						</mu-avatar>
 					</div>
 				</td>
@@ -68,7 +68,7 @@
 			<mu-flex class="select-chip" align-items="center" justify-content="center" fill wrap="wrap">
 				<mu-chip v-for="index in selects.chip" :key="index" delete @delete="selectRemove(index)">
 					<mu-avatar class="select-icon" :size="20">
-						<img :src="'chrome://favicon/' + task.result.detail[index].url" />
+						<img :src="$icon(task.result.detail[index].url)" />
 					</mu-avatar>
 				</mu-chip>
 			</mu-flex>

@@ -19,6 +19,7 @@ import Message from "muse-ui-message";
 import "../components";
 import "../common/extends";
 import "../common/base.less";
+import "../common/polyfill";
 
 import VueClipboard from "vue-clipboard2";
 Vue.use(MuseUI);

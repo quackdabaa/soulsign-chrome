@@ -1,6 +1,7 @@
 import Vue from "vue";
 import Root from "../popup/Root.vue";
 import "../common/base.less";
+import "../common/polyfill";
 
 Vue.config.productionTip = false;
 

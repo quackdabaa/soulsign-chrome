@@ -314,7 +314,6 @@ export default function (task) {
 			let n = newNotification(task.name, {
 				body,
 				url,
-				icon: "chrome://favicon/https://" + task.domains[0],
 			});
 			setTimeout(function () {
 				n.close();

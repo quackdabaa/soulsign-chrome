@@ -40,7 +40,7 @@ function syncSave(data) {
 function syncGet(keys) {
 	return new Promise(function (resolve, reject) {
 		chrome.storage.sync.get(keys, function (data) {
-			if (typeof keys === "string") resolve(data[keys]);
+			if (typeof keys === "string") resolve(data && data[keys]);
 			else resolve(data);
 		});
 	});
@@ -51,21 +51,19 @@ let cacheTasks;
  * @returns {Promise<soulsign.Task[]>}
  */
 function getTasks() {
-	return new Promise(function (resolve, reject) {
-		if (cacheTasks) return resolve(cacheTasks);
-		chrome.storage.sync.get("tasks", ({tasks: names}) => {
-			if (!names || !names.length) return resolve((cacheTasks = []));
-			chrome.storage.local.get(names, function (tmap) {
-				let tasks = [];
-				for (let name of names) {
-					try {
-						tasks.push(scriptbuild(tmap[name]));
-					} catch (e) {
-						console.error(`脚本${name}错误`, e);
-					}
+	if (cacheTasks) return Promise.resolve(cacheTasks);
+	return syncGet("tasks").then((names) => {
+		if (!names || !names.length) return (cacheTasks = []);
+		return syncGet(names).then((tmap) => {
+			let tasks = [];
+			for (let name of names) {
+				try {
+					tasks.push(scriptbuild(tmap[name]));
+				} catch (e) {
+					console.error(`脚本${name}错误`, e);
 				}
-				resolve((cacheTasks = tasks));
-			});
+			}
+			return (cacheTasks = tasks);
 		});
 	});
 }

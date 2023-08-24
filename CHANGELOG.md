@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.6] - 2023-08-24
+
+### 🛠 修复
+
+- 修复Firefox下无法安装脚本的问题
+- 修复Firefox无法显示脚本图标的问题
+
 ## [2.5.5] - 2023-08-21
 
 ### 🛠 修复
