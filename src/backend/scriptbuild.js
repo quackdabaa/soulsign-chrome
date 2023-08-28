@@ -34,12 +34,15 @@ export function frameRunner(tabId, frameId, domains, url) {
 		url,
 		eval(code, ...args) {
 			if (typeof code === "function") code = `(${code})(${args.map((x) => JSON.stringify(x))});`;
+			code = `try{${code}}catch(e){({soulsign_error: e+''})}`;
 			return new Promise(function (resolve, reject) {
 				chrome.tabs.executeScript(
 					tabId,
 					{code, frameId, runAt: "document_end", matchAboutBlank: true},
 					function (result) {
-						resolve(result && result[0]);
+						result = result && result[0];
+						if (result && result.soulsign_error) reject(result.soulsign_error);
+						else resolve(result);
 					}
 				);
 			});
@@ -50,7 +53,6 @@ export function frameRunner(tabId, frameId, domains, url) {
 				var s = document.createElement("script");
 				s.setAttribute("soulsign", "");
 				s.innerHTML = code;
-				console.log(document.head, document.documentElement);
 				(document.documentElement || document.head).appendChild(s);
 			}, code);
 		},
@@ -63,86 +65,86 @@ export function frameRunner(tabId, frameId, domains, url) {
 				evt.addEventListener(tabId + ":complete", fn);
 				if (timeout > 0)
 					setTimeout(function () {
-						resolve(false);
+						reject(`页面跳转超时>${timeout / 1e3}s`);
 						evt.removeEventListener(tabId + ":complete", fn);
 					}, timeout);
 			});
 		},
 		async waitUntil(selector, timeout = 10e3) {
 			let retryCount = timeout / 1e3;
-			while (--retryCount >= 0) {
+			while (retryCount > 0) {
 				if (await this.eval((s) => !!document.querySelector(s), selector)) return true;
+				if (--retryCount <= 0) throw `等待${selector}超时>${timeout / 1e3}s`;
 				await sleep(1e3);
 			}
-			return await this.eval((s) => !!document.querySelector(s), selector);
 		},
 		async click(selector, timeout = 10e3) {
-			if (await this.waitUntil(selector, timeout)) {
-				await this.eval((s) => {
-					let el = document.querySelector(s);
-					el.dispatchEvent(new MouseEvent("click", {bubbles: true}));
-					el.click();
-				}, selector);
-				return true;
-			}
-			return false;
+			await this.waitUntil(selector, timeout).catch((x) =>
+				Promise.reject(x.replace("等待", "点击"))
+			);
+			await this.eval((s) => {
+				let el = document.querySelector(s);
+				el.dispatchEvent(new MouseEvent("click", {bubbles: true}));
+				el.click();
+			}, selector);
+			return true;
 		},
 		async value(selector, value, timeout = 10e3) {
-			if (await this.waitUntil(selector, timeout)) {
-				await this.eval(
-					(s, v) => {
-						let el = document.querySelector(s);
-						el.value = v;
-						el.dispatchEvent(new Event("input", {bubbles: true}));
-					},
-					selector,
-					value
-				);
-				return true;
-			}
-			return false;
+			await this.waitUntil(selector, timeout).catch((x) =>
+				Promise.reject(x.replace("等待", "输入"))
+			);
+			await this.eval(
+				(s, v) => {
+					let el = document.querySelector(s);
+					el.value = v;
+					el.dispatchEvent(new Event("input", {bubbles: true}));
+				},
+				selector,
+				value
+			);
+			return true;
 		},
 		async press(selector, value, timeout = 10e3) {
 			if (typeof value === "number") value = {keyCode: value};
 			if (!value.keyCode && !value.charCode) throw "keypress need keyCode";
-			if (await this.waitUntil(selector, timeout)) {
-				await this.eval(
-					function press(s, v) {
-						if (typeof v === "number") v = {keyCode: v};
-						let el = typeof s === "string" ? document.querySelector(s) : s;
-						["keydown", "keypress", "keyup"].forEach(function (type, i) {
-							var keyboardEvent = document.createEvent("KeyboardEvent");
-							keyboardEvent[keyboardEvent.initKeyboardEvent ? "initKeyboardEvent" : "initKeyEvent"](
-								type, // event type: keydown, keyup, keypress
-								true, // bubbles
-								true, // cancelable
-								window, // view: should be window
-								v.ctrlKey || false, // ctrlKey
-								v.altKey || false, // altKey
-								v.shiftKey || false, // shiftKey
-								v.metaKey || false, // metaKey
-								v.keyCode || 0, // keyCode: unsigned long - the virtual key code, else 0
-								v.charCode || 0 // charCode: unsigned long - the Unicode character associated with the depressed key, else 0
-							);
-							el.dispatchEvent(keyboardEvent);
-						});
-						if (v.keyCode == 13) {
-							let p = el.parentElement;
-							while (p) {
-								if (p.tagName == "FORM") {
-									p.submit();
-									break;
-								}
-								p = p.parentElement;
+			await this.waitUntil(selector, timeout).catch((x) =>
+				Promise.reject(x.replace("等待", "按键"))
+			);
+			await this.eval(
+				function press(s, v) {
+					if (typeof v === "number") v = {keyCode: v};
+					let el = typeof s === "string" ? document.querySelector(s) : s;
+					["keydown", "keypress", "keyup"].forEach(function (type, i) {
+						var keyboardEvent = document.createEvent("KeyboardEvent");
+						keyboardEvent[keyboardEvent.initKeyboardEvent ? "initKeyboardEvent" : "initKeyEvent"](
+							type, // event type: keydown, keyup, keypress
+							true, // bubbles
+							true, // cancelable
+							window, // view: should be window
+							v.ctrlKey || false, // ctrlKey
+							v.altKey || false, // altKey
+							v.shiftKey || false, // shiftKey
+							v.metaKey || false, // metaKey
+							v.keyCode || 0, // keyCode: unsigned long - the virtual key code, else 0
+							v.charCode || 0 // charCode: unsigned long - the Unicode character associated with the depressed key, else 0
+						);
+						el.dispatchEvent(keyboardEvent);
+					});
+					if (v.keyCode == 13) {
+						let p = el.parentElement;
+						while (p) {
+							if (p.tagName == "FORM") {
+								p.submit();
+								break;
 							}
+							p = p.parentElement;
 						}
-					},
-					selector,
-					value
-				);
-				return true;
-			}
-			return false;
+					}
+				},
+				selector,
+				value
+			);
+			return true;
 		},
 		iframes() {
 			return new Promise(function (resolve, reject) {
@@ -190,6 +192,7 @@ export function frameRunner(tabId, frameId, domains, url) {
 				if (--waitCount < 1) break;
 				await this.sleep(1e3);
 			}
+			throw `等待iframe: ${url} 超时>${timeout / 1e3}s`;
 		},
 	};
 }
