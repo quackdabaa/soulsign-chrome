@@ -35,7 +35,7 @@
 				<template slot-scope="{row, $index}">
 					<td>{{ row.author }}</td>
 					<td>
-						<a v-if="row.namespace" class="app" :href="row.loginURL" target="_blank">{{
+						<a v-if="row.loginURL" class="app" :href="row.loginURL" target="_blank">{{
 							row.name
 						}}</a>
 						<span v-else>{{ row.name }}</span>

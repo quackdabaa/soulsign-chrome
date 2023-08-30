@@ -9,7 +9,7 @@
 		scrollable
 		@update:open="close"
 	>
-		<mu-form ref="form" v-focus :model="body" label-position="top">
+		<mu-form ref="form" :model="body" label-position="top">
 			<mu-form-item
 				v-for="param in items"
 				:key="param.name"

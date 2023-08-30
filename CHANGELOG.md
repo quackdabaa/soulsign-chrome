@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.10] - 2023-08-30
+
+### 🚀 改变
+
+- `fb.waitUtil`支持传入函数, 参考 [什么值得买](static/demos/smzdm.js)
+- 通过脚本名打开登录页面优化
+
 ## [2.5.9] - 2023-08-26
 
 ### 🚀 改变

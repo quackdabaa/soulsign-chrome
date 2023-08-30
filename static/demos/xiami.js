@@ -4,7 +4,6 @@
 // @version           1.0.2
 // @author            inu1255
 // @loginURL          https://www.xiami.com/
-// @updateURL         https://gitee.com/inu1255/soulsign-chrome/raw/master/public/demos/xiami.js
 // @expire            28800e3
 // @grant             require
 // @grant             cookie

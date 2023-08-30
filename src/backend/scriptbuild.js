@@ -73,7 +73,13 @@ export function frameRunner(tabId, frameId, domains, url) {
 		async waitUntil(selector, timeout = 10e3) {
 			let retryCount = timeout / 1e3;
 			while (retryCount > 0) {
-				if (await this.eval((s) => !!document.querySelector(s), selector)) return true;
+				if (
+					await (typeof selector == "function"
+						? selector()
+						: this.eval((s) => !!document.querySelector(s), selector)
+					).catch(() => false)
+				)
+					return true;
 				if (--retryCount <= 0) throw `等待${selector}超时>${timeout / 1e3}s`;
 				await sleep(1e3);
 			}

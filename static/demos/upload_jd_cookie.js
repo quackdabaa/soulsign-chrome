@@ -4,7 +4,6 @@
 // @version           1.0.3
 // @author            inu1255
 // @loginURL          http://union.jd.com
-// @updateURL         https://soulsign.inu1255.cn/script/inu1255/%E4%BA%AC%E4%B8%9C%E9%87%91%E8%9E%8DPC.js
 // @expire            900e3
 // @grant             cookie
 // @domain            api.m.jd.com

@@ -4,7 +4,6 @@
 // @version           1.0.1
 // @author            inu1255
 // @loginURL          https://music.163.com/#/login
-// @updateURL         https://soulsign.inu1255.cn/script/inu1255/网易云音乐
 // @expire            900000
 // @domain            music.163.com
 // @param             name 账号

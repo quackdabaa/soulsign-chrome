@@ -84,12 +84,14 @@ interface Browser {
 	waitLoaded(timeout?: number): Promise<boolean>;
 
 	/**
-	 * 等待指定选择器的元素出现
-	 * @param selector 选择器
+	 * 等待指定选择器的元素出现或函数返回true
+	 * @param selector css选择器 或 一个函数
 	 * @param timeout 等待超时时间(毫秒),默认10秒
 	 * @returns {Promise<boolean>} 是否加载完成
+	 * @example
+	 * fb.waitUntil(() => fb.eval(() => document.querySelector("#sign-model").clientWidth)).then(() => "签到成功")
 	 */
-	waitUntil(selector: string, timeout?: number): Promise<boolean>;
+	waitUntil(selector: string | (() => Promise<boolean>), timeout?: number): Promise<boolean>;
 
 	/**
 	 * 点击指定选择器的元素, 如果元素不存在, 则等待元素出现后再点击
