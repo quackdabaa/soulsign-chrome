@@ -85,13 +85,14 @@ interface Browser {
 
 	/**
 	 * 等待指定选择器的元素出现或函数返回true
+	 * @template T
 	 * @param selector css选择器 或 一个函数
 	 * @param timeout 等待超时时间(毫秒),默认10秒
-	 * @returns {Promise<boolean>} 是否加载完成
+	 * @returns {Promise<T>} 是否加载完成
 	 * @example
 	 * fb.waitUntil(() => fb.eval(() => document.querySelector("#sign-model").clientWidth)).then(() => "签到成功")
 	 */
-	waitUntil(selector: string | (() => Promise<boolean>), timeout?: number): Promise<boolean>;
+	waitUntil<T>(selector: string | (() => Promise<T>), timeout?: number): Promise<T>;
 
 	/**
 	 * 点击指定选择器的元素, 如果元素不存在, 则等待元素出现后再点击
@@ -108,7 +109,7 @@ interface Browser {
 	 * @param timeout 等待超时时间(毫秒),默认10秒
 	 * @returns {Promise<boolean>} 是否输入完成
 	 */
-	input(selector: string, value: string, timeout?: number): Promise<boolean>;
+	value(selector: string, value: string, timeout?: number): Promise<boolean>;
 
 	/**
 	 * 等待指定选择器的元素出现后, 模拟键盘事件

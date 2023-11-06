@@ -72,14 +72,15 @@ export function frameRunner(tabId, frameId, domains, url) {
 		},
 		async waitUntil(selector, timeout = 10e3) {
 			let retryCount = timeout / 1e3;
+			let ret;
 			while (retryCount > 0) {
 				if (
-					await (typeof selector == "function"
+					(ret = await (typeof selector == "function"
 						? selector()
 						: this.eval((s) => !!document.querySelector(s), selector)
-					).catch(() => false)
+					).catch(() => false))
 				)
-					return true;
+					return ret;
 				if (--retryCount <= 0) throw `等待${selector}超时>${timeout / 1e3}s`;
 				await sleep(1e3);
 			}
@@ -91,7 +92,7 @@ export function frameRunner(tabId, frameId, domains, url) {
 			await this.eval((s) => {
 				let el = document.querySelector(s);
 				el.dispatchEvent(new MouseEvent("click", {bubbles: true}));
-				el.click();
+				// el.click();
 			}, selector);
 			return true;
 		},
