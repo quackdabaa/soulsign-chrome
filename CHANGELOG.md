@@ -4,13 +4,20 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [2.5.12] - 2023-11-08
+
+### 🚀 改变
+
+- 增加 fb.emit 模拟事件
+
 ## [2.5.11] - 2023-11-06
 
 ### 🛠 修复
 
 - 修复 soulsign.d.ts 接口定义错误
 - 优化模拟操作接口
-- 增加unicloud续费脚本
+- 增加 unicloud 续费脚本
 
 ## [2.5.10] - 2023-08-30
 
@@ -29,28 +36,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 🛠 修复
 
-- 修复Firefox下每次打开浏览器都会签到的问题
+- 修复 Firefox 下每次打开浏览器都会签到的问题
 
 ## [2.5.7] - 2023-08-24
 
 ### 🛠 修复
 
-- 修复Firefox下的问题
+- 修复 Firefox 下的问题
 - 代码整理
 
 ## [2.5.6] - 2023-08-24
 
 ### 🛠 修复
 
-- 修复Firefox下无法安装脚本的问题
-- 修复Firefox无法显示脚本图标的问题
+- 修复 Firefox 下无法安装脚本的问题
+- 修复 Firefox 无法显示脚本图标的问题
 
 ## [2.5.5] - 2023-08-21
 
 ### 🛠 修复
 
-- 删除serviceWorker修复2.4.3版本升级到2.5.0版本后的问题
-如果 2.4.3 升级到 2.5.5, 请重新加载插件两次
+- 删除 serviceWorker 修复 2.4.3 版本升级到 2.5.0 版本后的问题
+  如果 2.4.3 升级到 2.5.5, 请重新加载插件两次
 
 ## [2.5.4] - 2023-08-18
 
@@ -63,7 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🛠 修复
 
 - 参数设置界面优化
-- 弹窗修复点击mask误关闭的问题
+- 弹窗修复点击 mask 误关闭的问题
 
 ## [2.5.2] - 2023-08-18
 
@@ -76,7 +83,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 🛠 修复
 
-- axios支持设置user-agent
+- axios 支持设置 user-agent
 - 修复部分 headers 设置不生效的问题
 
 ## [2.5.0] - 2023-08-18
@@ -84,7 +91,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🎉 增加
 
 - 增加 `getLocal` 获取 `localStorage`, 参考脚本 [阿里云 获取 localStorage](./static//demos/aliyundrive.js)
-- 支持设置通知URL, 掉线时向通知URL推送通知
+- 支持设置通知 URL, 掉线时向通知 URL 推送通知
 - 脚本支持 `@freq` 自定义运行频率
 
 ## [2.4.3] - 2021-02-08
@@ -98,40 +105,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🎉 增加
 
 - 初步支持脚本录制功能,支持录制点击、输入框输入、表单提交
-- popup页面增加cookie管理小工具
-- 模拟点击句柄支持press(模拟按键),getFrame(根据url获取iframe页面),详细参见`@types/index.d.ts`
+- popup 页面增加 cookie 管理小工具
+- 模拟点击句柄支持 press(模拟按键),getFrame(根据 url 获取 iframe 页面),详细参见`@types/index.d.ts`
 
 ### 🚀 改变
 
-- 模拟点击句柄`waitLoaded`默认10秒超时，如果不想超时请传-1
+- 模拟点击句柄`waitLoaded`默认 10 秒超时，如果不想超时请传-1
 
 ### 🛠 修复
 
-- 修复有的元素无法生成`css选择器`的bug
+- 修复有的元素无法生成`css选择器`的 bug
 
 ## [2.4.0] - 2020-11-11
 
 ### 🎉 增加
 
 - 初步支持脚本录制功能,支持录制点击、输入框输入、表单提交
-- popup页面增加cookie管理小工具
-- 模拟点击句柄支持press(模拟按键),getFrame(根据url获取iframe页面),详细参见`@types/index.d.ts`
+- popup 页面增加 cookie 管理小工具
+- 模拟点击句柄支持 press(模拟按键),getFrame(根据 url 获取 iframe 页面),详细参见`@types/index.d.ts`
 
 ### 🚀 改变
 
-- 模拟点击句柄`waitLoaded`默认10秒超时，如果不想超时请传-1
+- 模拟点击句柄`waitLoaded`默认 10 秒超时，如果不想超时请传-1
 
 ## [2.3.0] - 2020-09-22
 
 ### 🎉 增加
 
-- 脚本支持使用窗口或Tab页方式打开页面
+- 脚本支持使用窗口或 Tab 页方式打开页面
 - 脚本打开页面支持预执行脚本
 - 脚本打开页面支持调用页面内的方法
 
 ### 🚀 改变
 
-- 脚本的`open`函数在MacOS上表现为打开新窗口,在其它平台为打开Tab页,可通过`openTab`/`openWindow`明确打开方式
+- 脚本的`open`函数在 MacOS 上表现为打开新窗口,在其它平台为打开 Tab 页,可通过`openTab`/`openWindow`明确打开方式
 - `open`返回的页面句柄的`eval`/`inject`函数支持传入一个函数和对应的参数(之前只能手动拼字符串)
 
 ## [2.2.0] - 2020-09-16

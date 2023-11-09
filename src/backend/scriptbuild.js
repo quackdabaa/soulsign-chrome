@@ -91,9 +91,28 @@ export function frameRunner(tabId, frameId, domains, url) {
 			);
 			await this.eval((s) => {
 				let el = document.querySelector(s);
-				el.dispatchEvent(new MouseEvent("click", {bubbles: true}));
-				// el.click();
+				el.click();
 			}, selector);
+			return true;
+		},
+		async emit(selector, event, timeout = 10e3) {
+			await this.waitUntil(selector, timeout).catch((x) =>
+				Promise.reject(x.replace("等待", "点击"))
+			);
+			await this.eval(
+				(s, e) => {
+					let el = document.querySelector(s);
+					if (/key/.test(event)) event = new KeyboardEvent(e, {bubbles: true});
+					else if (/mouse|click/.test(event)) event = new MouseEvent(e, {bubbles: true});
+					else if (/touch/.test(event)) event = new TouchEvent(e, {bubbles: true});
+					else if (/pointer/.test(event)) event = new PointerEvent(e, {bubbles: true});
+					else if (/focus/.test(event)) event = new FocusEvent(e, {bubbles: true});
+					else event = new Event(e, {bubbles: true});
+					el.dispatchEvent(event);
+				},
+				selector,
+				event
+			);
 			return true;
 		},
 		async value(selector, value, timeout = 10e3) {

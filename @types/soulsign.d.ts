@@ -103,6 +103,14 @@ interface Browser {
 	click(selector: string, timeout?: number): Promise<boolean>;
 
 	/**
+	 * 选择器的元素, 如果元素不存在, 则等待元素出现后再点击
+	 * @param selector 选择器
+	 * @param timeout 等待超时时间(毫秒),默认10秒
+	 * @returns {Promise<boolean>} 是否点击完成
+	 */
+	emit(selector: string, event: string, timeout?: number): Promise<boolean>;
+
+	/**
 	 * 等待指定选择器的元素出现后, 输入指定的内容
 	 * @param selector 选择器
 	 * @param value 要输入的内容
