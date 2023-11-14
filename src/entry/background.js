@@ -88,7 +88,7 @@ async function loop() {
 				try {
 					ok = await race(task.check(task._params));
 				} catch (err) {
-					if (/Network Error|timeout/.test(err)) return; // 网络中断载时
+					// if (/Network Error|timeout/.test(err)) return; // 网络中断时
 					task.result = err + "";
 					console.error(task.name, "开始检查是否在线失败", err);
 				}
