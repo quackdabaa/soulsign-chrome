@@ -51,6 +51,16 @@ async function run(param) {
 	);
 
 	const access_token = resp1.data.access_token;
+	await axios.post(
+		"https://member.aliyundrive.com/v1/activity/sign_in_reward",
+		{signInDay: new Date().getDate()},
+		{
+			headers: {
+				Authorization: "Bearer " + access_token,
+				"Content-Type": "application/json",
+			},
+		}
+	);
 
 	const resp2 = await axios.post(
 		"https://member.aliyundrive.com/v1/activity/sign_in_list",
@@ -74,7 +84,7 @@ async function run(param) {
 	return signInMessage;
 }
 
-async function check(param) {
+async function check(param, flag) {
 	try {
 		await axios.post(
 			"https://auth.aliyundrive.com/v2/account/token",
@@ -90,13 +100,14 @@ async function check(param) {
 		);
 		return true;
 	} catch (error) {
+		if (flag) return false;
 		// 通过 getLocal 获取 localStorage 中的 refresh_token
 		param.refresh_token = await getLocal("https://www.aliyundrive.com/", "token").then(
 			(x) => JSON.parse(x).refresh_token
 		);
 		console.log("更新 access_token 失败");
 		console.error(error);
-		return false;
+		return check(param, true);
 	}
 }
 
