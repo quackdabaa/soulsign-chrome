@@ -51,9 +51,21 @@ async function run(param) {
 	);
 
 	const access_token = resp1.data.access_token;
+	let signInDay = await axios
+		.post(
+			"https://member.aliyundrive.com/v2/activity/sign_in_info",
+			{},
+			{
+				headers: {
+					Authorization: "Bearer " + access_token,
+					"Content-Type": "application/json",
+				},
+			}
+		)
+		.then((x) => x.data.result.signInDay);
 	await axios.post(
 		"https://member.aliyundrive.com/v1/activity/sign_in_reward",
-		{signInDay: new Date().getDate()},
+		{signInDay},
 		{
 			headers: {
 				Authorization: "Bearer " + access_token,
