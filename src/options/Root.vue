@@ -211,9 +211,7 @@ export default {
 		return {
 			loading: false,
 			log: false, // 当前查看log的任务,
-			body: {
-				code: defaultCode,
-			}, // 添加/编辑脚本,
+			body: false, // 添加/编辑脚本,
 			running: false,
 			tasks: [],
 			sort: {name: "", order: "asc"},
