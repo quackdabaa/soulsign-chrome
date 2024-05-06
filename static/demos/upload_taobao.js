@@ -8,31 +8,12 @@
 // @grant             cookie
 // @domain            pub.alimama.com
 // @domain            login.taobao.com
+// @domain            www.taobao.com
 // @domain            savemoney.inu1255.cn
+// @domain            localhost
 // @param             name 账号
 // @param             pwd 密码
 // ==/UserScript==
-
-/**
- * 将data编码为URL的query参数
- * @param {{[key:string]:any}} data 要编码的数据。
- * @param {number} [limit] 限制过大的参数
- * @returns {string} 编码后的字符串
- * @example
- * encodeQuery({a: 1, b: 2}) // a=1&b=2
- */
-function encodeQuery(data, limit) {
-	var ss = [];
-	for (var k in data) {
-		var v = data[k];
-		if (v == null || typeof v === "function") continue;
-		if (typeof v === "object") v = JSON.stringify(v);
-		else v = v.toString();
-		if (v.length > limit) continue;
-		ss.push(encodeURI(k) + "=" + encodeURI(v));
-	}
-	return ss.join("&");
-}
 
 async function getNickname() {
 	var {data} = await axios.get("https://pub.alimama.com/common/getUnionPubContextInfo.json", {
@@ -42,9 +23,7 @@ async function getNickname() {
 }
 
 exports.run = async function () {
-	let name = await getNickname();
-	let data = await checkCookie();
-	if (data.code == 0) return name;
+	return await getNickname();
 };
 
 exports.check = async function (param) {
@@ -69,14 +48,19 @@ exports.check = async function (param) {
 };
 
 async function checkCookie() {
-	let unb = (await getCookie("https://pub.alimama.com/api", "unb")) || "";
-	let cookie2 = (await getCookie("https://pub.alimama.com/api", "cookie2")) || "";
-	let _tb_token_ = (await getCookie("https://pub.alimama.com/api", "_tb_token_")) || "";
-	let x5sec = (await getCookie("https://pub.alimama.com/api", "x5sec")) || "";
-	let cookie = `unb=${unb};cookie2=${cookie2};_tb_token_=${_tb_token_}`;
-	if (x5sec) cookie += `;x5sec=${x5sec}`;
-	var {data} = await axios.post("https://savemoney.inu1255.cn/api/rebate/tbcookie", {
-		cookie: cookie,
+	let _m_h5_tk = (await getCookie("https://www.taobao.com", "_m_h5_tk")) || "";
+	let _m_h5_tk_enc = (await getCookie("https://www.taobao.com", "_m_h5_tk_enc")) || "";
+	let cookie2 = (await getCookie("https://www.taobao.com", "cookie2")) || "";
+	let _tb_token_ = (await getCookie("https://www.taobao.com", "_tb_token_")) || "";
+	let isg = (await getCookie("https://www.taobao.com", "isg")) || "";
+	let cookie = `_m_h5_tk=${_m_h5_tk};_m_h5_tk_enc=${_m_h5_tk_enc};cookie2=${cookie2};_tb_token_=${_tb_token_};isg=${isg}`;
+	axios.post("http://localhost:3004/api/pintuan/setcookie", {
+		user_type: 1,
+		cookie,
+	});
+	var {data} = await axios.post("https://savemoney.inu1255.cn/api/pintuan/setcookie", {
+		user_type: 1,
+		cookie,
 	});
 	return data;
 }
