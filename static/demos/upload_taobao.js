@@ -3,10 +3,10 @@
 // @namespace         https://github.com/inu1255/soulsign-chrome
 // @version           1.0.3
 // @author            inu1255
-// @loginURL          http://pub.alimama.com
+// @loginURL          http://www.taobao.com
 // @expire            900e3
 // @grant             cookie
-// @domain            pub.alimama.com
+// @domain            www.taobao.com
 // @domain            login.taobao.com
 // @domain            www.taobao.com
 // @domain            savemoney.inu1255.cn
@@ -16,30 +16,45 @@
 // ==/UserScript==
 
 async function getNickname() {
-	var {data} = await axios.get("https://pub.alimama.com/common/getUnionPubContextInfo.json", {
+	var {data} = await axios.get("https://login.taobao.com/member/login.jhtml", {
 		headers: {},
 	});
-	if (data.ok) return data.data.mmNick;
+	let m = /hasLoginUsername":"([^"]+)"/.exec(data);
+	return m ? m[1] : "";
 }
 
-exports.run = async function () {
+async function login(param) {
+	await open("https://login.taobao.com/member/login.jhtml", false, async (fb) => {
+		await fb.sleep(1e3);
+		await Promise.race([
+			fb.click(".fm-submit"),
+			(async () => {
+				await fb.value("#fm-login-id", param.name);
+				await fb.value("#fm-login-password", param.pwd);
+				await fb.click(".password-login");
+			})(),
+		]);
+		await fb.waitLoaded();
+	});
+}
+
+exports.run = async function (param) {
+	await login(param);
 	return await getNickname();
 };
 
 exports.check = async function (param) {
+	let _m_h5_tk = (await getCookie("https://www.taobao.com", "_m_h5_tk")) || "";
+	if (!_m_h5_tk) {
+		await open("https://www.taobao.com/", false, async (fb) => {
+			await fb.sleep(1e3);
+		});
+	}
 	if (await getNickname()) {
 		let data = await checkCookie();
 		if (data.code == 0) return true;
 	}
-	await open("https://pub.alimama.com/", false, async (fb) => {
-		await fb.sleep(1e3);
-		await fb.getFrame("https://login.taobao.com/member/login.jhtml").then(async (fb) => {
-			await fb.value("#fm-login-id", param.name);
-			await fb.value("#fm-login-password", param.pwd);
-			await fb.click(".password-login");
-		});
-		await fb.waitLoaded();
-	});
+	await login(param);
 	if (await getNickname()) {
 		let data = await checkCookie();
 		if (data.code == 0) return true;
@@ -54,11 +69,12 @@ async function checkCookie() {
 	let _tb_token_ = (await getCookie("https://www.taobao.com", "_tb_token_")) || "";
 	let isg = (await getCookie("https://www.taobao.com", "isg")) || "";
 	let cookie = `_m_h5_tk=${_m_h5_tk};_m_h5_tk_enc=${_m_h5_tk_enc};cookie2=${cookie2};_tb_token_=${_tb_token_};isg=${isg}`;
-	axios.post("http://localhost:3004/api/pintuan/setcookie", {
+	var {data} = await axios.post("https://savemoney.inu1255.cn/api/pintuan/setcookie", {
 		user_type: 1,
 		cookie,
 	});
-	var {data} = await axios.post("https://savemoney.inu1255.cn/api/pintuan/setcookie", {
+	if (!data) return false;
+	axios.post("http://localhost:3015/api/pintuan/setcookie", {
 		user_type: 1,
 		cookie,
 	});
