@@ -10,8 +10,10 @@
 // @domain            plogin.m.jd.com
 // @domain            passport.jd.com
 // @domain            savemoney.inu1255.cn
+// @domain            localhost
 // @param             name 账号
 // @param             pwd 密码
+// @param             port 端口
 // ==/UserScript==
 
 async function check() {
@@ -61,12 +63,16 @@ async function checkCookie(param) {
 		);
 	}
 	if (!pt_key) throw "未获取到cookie";
-	var {data} = await axios.post("https://savemoney.inu1255.cn/api/rebate/jdcookie", {
+	if (param.port) {
+		axios.post("http://localhost:" + param.port + "/api/rebate/setcookie", {
+			user_type: 5,
+			cookie: `pt_key=${pt_key};`,
+		});
+	}
+	var {data} = await axios.post("https://savemoney.inu1255.cn/api/rebate/setcookie", {
+		user_type: 5,
 		cookie: `pt_key=${pt_key};`,
 	});
 	if (data.code != 0) return false;
-	axios.post("http://localhost:3004/api/rebate/jdcookie", {
-		cookie: `pt_key=${pt_key};`,
-	});
 	return true;
 }
