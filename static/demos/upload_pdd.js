@@ -11,6 +11,7 @@
 // @domain            localhost
 // @param             name 账号
 // @param             pwd 密码
+// @param             port 端口
 // ==/UserScript==
 
 async function isOnline() {
@@ -20,27 +21,31 @@ async function isOnline() {
 	return /class="nickname"/.test(data);
 }
 
-exports.run = async function () {};
+exports.run = async function (param) {
+	return await checkCookie(param);
+};
 
 exports.check = async function (param) {
 	if (!(await isOnline())) {
 		return false;
 	}
-	await checkCookie();
+	await checkCookie(param);
 	return true;
 };
 
-async function checkCookie() {
+async function checkCookie(param) {
 	let PDDAccessToken = (await getCookie("https://mobile.yangkeduo.com/", "PDDAccessToken")) || "";
 	let cookie = `PDDAccessToken=${PDDAccessToken}`;
+	if (param.port) {
+		axios.post("http://localhost:" + param.port + "/api/pintuan/setcookie", {
+			user_type: 3,
+			cookie,
+		});
+	}
 	var {data} = await axios.post("https://savemoney.inu1255.cn/api/pintuan/setcookie", {
 		user_type: 3,
 		cookie,
 	});
 	if (data.data) return true;
-	axios.post("http://localhost:3004/api/pintuan/setcookie", {
-		user_type: 3,
-		cookie,
-	});
 	throw data.msg;
 }
