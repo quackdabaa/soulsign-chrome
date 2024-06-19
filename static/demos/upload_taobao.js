@@ -3,12 +3,12 @@
 // @namespace         https://github.com/inu1255/soulsign-chrome
 // @version           1.0.3
 // @author            inu1255
-// @loginURL          http://www.taobao.com
+// @loginURL          https://login.m.taobao.com/login.htm
 // @expire            900e3
 // @grant             cookie
-// @domain            www.taobao.com
-// @domain            login.taobao.com
-// @domain            www.taobao.com
+// @domain            pages-fast.m.taobao.com
+// @domain            main.m.taobao.com
+// @domain            login.m.taobao.com
 // @domain            savemoney.inu1255.cn
 // @domain            localhost
 // @param             name 账号
@@ -17,39 +17,39 @@
 // ==/UserScript==
 
 async function getNickname() {
-	var {data} = await axios.get("https://login.taobao.com/member/login.jhtml", {
-		headers: {},
-	});
-	let m = /hasLoginUsername":"([^"]+)"/.exec(data);
-	return m ? m[1] : "";
+	return "ok";
 }
 
 async function login(param) {
-	await open("https://login.taobao.com/member/login.jhtml", false, async (fb) => {
+	await open("https://main.m.taobao.com/mytaobao/index.html", false, async (fb) => {
 		await fb.sleep(1e3);
-		await Promise.race([
-			fb.click(".fm-submit"),
-			(async () => {
-				await fb.value("#fm-login-id", param.name);
-				await fb.value("#fm-login-password", param.pwd);
-				await fb.click(".password-login");
-			})(),
-		]);
+		await fb.getFrame("https://login.m.taobao.com/login.htm", 2).then(async (fb) => {
+			fb.click(".fm-agreement-text");
+			await fb.click(".password-login-link");
+			await fb.value("#fm-login-id", param.name);
+			await fb.value("#fm-login-password", param.pwd);
+			await fb.click(".password-login");
+			fb.click(".dialog-btn-ok");
+			await fb.sleep(3e3);
+		});
 		await fb.waitLoaded();
+		await fb.sleep(2e3);
 	});
 }
 
 exports.run = async function (param) {
-	await login(param);
 	let data = await checkCookie(param);
+	if (data.code == 0) return await getNickname();
+	await login(param);
+	data = await checkCookie(param);
 	if (data.code == 0) return await getNickname();
 	return false;
 };
 
 exports.check = async function (param) {
-	let _m_h5_tk = (await getCookie("https://www.taobao.com", "_m_h5_tk")) || "";
+	let _m_h5_tk = (await getCookie("https://pages-fast.m.taobao.com", "_m_h5_tk")) || "";
 	if (!_m_h5_tk) {
-		await open("https://www.taobao.com/", false, async (fb) => {
+		await open("https://login.m.taobao.com/login.htm", false, async (fb) => {
 			await fb.sleep(1e3);
 		});
 	}
@@ -66,11 +66,11 @@ exports.check = async function (param) {
 };
 
 async function checkCookie(param) {
-	let _m_h5_tk = (await getCookie("https://www.taobao.com", "_m_h5_tk")) || "";
-	let _m_h5_tk_enc = (await getCookie("https://www.taobao.com", "_m_h5_tk_enc")) || "";
-	let cookie2 = (await getCookie("https://www.taobao.com", "cookie2")) || "";
-	let _tb_token_ = (await getCookie("https://www.taobao.com", "_tb_token_")) || "";
-	let isg = (await getCookie("https://www.taobao.com", "isg")) || "";
+	let _m_h5_tk = (await getCookie("https://pages-fast.m.taobao.com", "_m_h5_tk")) || "";
+	let _m_h5_tk_enc = (await getCookie("https:/pages-fast.m.taobao.com", "_m_h5_tk_enc")) || "";
+	let cookie2 = (await getCookie("https://pages-fast.m.taobao.com", "cookie2")) || "";
+	let _tb_token_ = (await getCookie("https://pages-fast.m.taobao.com", "_tb_token_")) || "";
+	let isg = (await getCookie("https://pages-fast.m.taobao.com", "isg")) || "";
 	let cookie = `_m_h5_tk=${_m_h5_tk};_m_h5_tk_enc=${_m_h5_tk_enc};cookie2=${cookie2};_tb_token_=${_tb_token_};isg=${isg}`;
 	if (param.port) {
 		axios.post("http://localhost:" + param.port + "/api/pintuan/setcookie", {

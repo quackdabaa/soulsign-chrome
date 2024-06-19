@@ -81,6 +81,7 @@ async function loop() {
 		if (task.check) {
 			// 有检查是否在线的函数
 			let now = Date.now();
+			if (task.online_at > now) task.online_at = now;
 			if (task.online_at + task.expire < now) {
 				// 没有检查过|之前不在线|到了再次检查时间了
 				changed = true;

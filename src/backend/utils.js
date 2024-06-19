@@ -250,11 +250,13 @@ export async function runTask(task) {
 	try {
 		filTask(task, await task.run(task._params));
 		task.success_at = now;
+		if (task.failure_at >= task.success_at) task.failure_at = 0;
 		task.ok++;
 		console.log(task.name, "签到成功");
 	} catch (err) {
 		filTask(task, err || "失败");
 		task.failure_at = now;
+		if (task.success_at >= task.failure_at) task.success_at = 0;
 		console.error(task.name, "签到失败", err);
 	}
 	return task;

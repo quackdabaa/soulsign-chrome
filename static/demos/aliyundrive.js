@@ -2,9 +2,9 @@
 // @name              阿里云盘签到
 // @namespace         https://soulsign.inu1255.cn/scripts/706
 // @version           1.0.1
-// @author            yi-Xu-0100
+// @author            inu1255
 // @loginURL          https://www.aliyundrive.com/sign/in
-// @updateURL         https://soulsign.inu1255.cn/script/yi-Xu-0100/阿里云盘签到
+// @updateURL         https://soulsign.inu1255.cn/script/inu1255/阿里云盘签到
 // @expire            900000
 // @domain            www.aliyundrive.com
 // @domain            auth.aliyundrive.com
