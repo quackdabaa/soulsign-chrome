@@ -3,7 +3,7 @@
 // @namespace         https://github.com/inu1255/soulsign-chrome
 // @version           1.0.3
 // @author            inu1255
-// @loginURL          https://jingfenapp.jd.com/
+// @loginURL          https://plogin.m.jd.com/login/login?returnurl=https%3A%2F%2Fjingfenapp.jd.com%2F
 // @expire            900e3
 // @grant             cookie
 // @domain            api.m.jd.com
@@ -63,15 +63,18 @@ async function checkCookie(param) {
 		);
 	}
 	if (!pt_key) throw "未获取到cookie";
+	let pin = (await getCookie("https://api.m.jd.com/api", "pin")) || "";
+	let thor = (await getCookie("https://api.m.jd.com/api", "thor")) || "";
+	let cookie = `pt_key=${pt_key};pt_pin=${pin};thor=${thor};`;
 	if (param.port) {
 		axios.post("http://localhost:" + param.port + "/api/rebate/setcookie", {
 			user_type: 5,
-			cookie: `pt_key=${pt_key};`,
+			cookie,
 		});
 	}
 	var {data} = await axios.post("https://savemoney.inu1255.cn/api/rebate/setcookie", {
 		user_type: 5,
-		cookie: `pt_key=${pt_key};`,
+		cookie,
 	});
 	if (data.code != 0) return false;
 	return true;
