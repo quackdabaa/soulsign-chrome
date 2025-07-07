@@ -38,6 +38,57 @@ jobs:
           npm version ${{ github.event.inputs.version_bump }} --no-git-tag-version
           echo "NEW_VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_ENV
 
+      # 检查是否存在扩展密钥文件
+      - name: 检查扩展密钥
+        id: check_key
+        run: |
+          if [ -f "key.pem" ]; then
+            echo "key_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "key_exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      # 如果没有密钥文件，创建一个新的
+      - name: 创建扩展密钥（如果不存在）
+        if: steps.check_key.outputs.key_exists == 'false'
+        run: |
+          openssl genrsa 2048 | openssl pkcs8 -topk8 -nocrypt -out key.pem
+
+      # 修改manifest.js，添加key字段
+      - name: 修改manifest添加key字段
+        run: |
+          # 创建一个临时脚本来修改manifest.js
+          cat > update_manifest.js << 'EOF'
+          const fs = require('fs');
+          const path = require('path');
+          
+          // 读取密钥文件
+          const keyPath = path.resolve('key.pem');
+          const key = fs.readFileSync(keyPath, 'utf8');
+          
+          // 读取manifest.js文件
+          const manifestPath = path.resolve('src/manifest.js');
+          let manifestContent = fs.readFileSync(manifestPath, 'utf8');
+          
+          // 检查manifest.js是否已经包含key字段
+          if (!manifestContent.includes('key:')) {
+            // 在manifest对象中添加key字段
+            manifestContent = manifestContent.replace(
+              'const manifest = {',
+              'const manifest = {\n\tkey: `' + key.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$/g, '\\$') + '`,'
+            );
+            
+            // 写回manifest.js文件
+            fs.writeFileSync(manifestPath, manifestContent);
+            console.log('已添加key字段到manifest.js');
+          } else {
+            console.log('manifest.js已包含key字段，无需修改');
+          }
+          EOF
+          
+          # 运行脚本
+          node update_manifest.js
+
       - name: 构建扩展
         run: npm run build
         
@@ -58,6 +109,14 @@ jobs:
         with:
           name: soulsign-chrome-${{ env.VERSION }}
           path: soulsign-chrome-${{ env.VERSION }}.zip
+          retention-days: 30
+          
+      # 上传密钥文件作为加密的artifact，以便将来构建使用
+      - name: 上传扩展密钥
+        uses: actions/upload-artifact@v4
+        with:
+          name: extension-key
+          path: key.pem
           retention-days: 30
 
       - name: 创建发布（如果版本已更新）
