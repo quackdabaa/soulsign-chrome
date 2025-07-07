@@ -20,18 +20,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
       - name: 设置Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v3
         with:
           node-version: '16'
-          cache: 'npm'
 
       - name: 安装依赖
-        run: npm ci
+        run: npm install
 
       - name: 更新版本号（如果需要）
         if: ${{ github.event.inputs.version_bump != 'none' }}
@@ -55,7 +54,7 @@ jobs:
         run: mv build.zip soulsign-chrome-${{ env.VERSION }}.zip
 
       - name: 上传构建文件
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: soulsign-chrome-${{ env.VERSION }}
           path: soulsign-chrome-${{ env.VERSION }}.zip
@@ -71,4 +70,4 @@ jobs:
           draft: false
           prerelease: false
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
