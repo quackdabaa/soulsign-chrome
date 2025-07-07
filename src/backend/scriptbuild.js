@@ -1,5 +1,12 @@
 /**
  * 生成安全的脚本
+ * 
+ * 关于cookie处理：
+ * 1. 普通cookie：通过withCredentials自动发送
+ * 2. 分区cookie（带有partitionKey）：通过getAllCookies获取后，以_cookie头发送
+ * 3. 自定义cookie：通过设置headers.Cookie，会被转换为_cookie头发送
+ * 
+ * background.js中的webRequest拦截器会将_cookie头转换回标准的Cookie头
  */
 import axios from "axios";
 import Listener from "@/common/Listener";
@@ -264,21 +271,35 @@ export default function (task) {
 				delete config.headers["user-agent"];
 			}
 			
-			// 如果用户手动设置了Cookie头，转换为自定义头部，后续在background页面处理
+			// 如果用户手动设置了Cookie头，转换为自定义头部
 			if (config.headers.Cookie) {
 				config.headers._cookie = config.headers.Cookie;
 				delete config.headers.Cookie;
 			}
 		}
 		
-		// 如果脚本有cookie权限，启用withCredentials以自动发送cookie
-		if (grant.has("cookie")) {
-			config.withCredentials = true;
-			
-			// 记录当前URL，用于后续在background页面处理时获取对应的cookie
-			config.headers = config.headers || {};
-			config.headers._url = config.url;
+		// 如果脚本有cookie权限，自动获取所有cookie并通过_cookie头传递
+		if (grant.has("cookie") && (!config.headers || !config.headers._cookie)) {
+			try {
+				// 获取URL的所有cookie（包括分区cookie）
+				const url = config.url;
+				const allCookies = await inject.getAllCookies(url);
+				
+				if (allCookies.length > 0) {
+					const cookieStr = allCookies
+						.map(cookie => `${cookie.name}=${cookie.value}`)
+						.join('; ');
+					
+					config.headers = config.headers || {};
+					config.headers._cookie = cookieStr;
+				}
+			} catch (error) {
+				console.error('Error getting cookies for request:', error);
+			}
 		}
+		
+		// 启用withCredentials以支持跨域请求的认证
+		config.withCredentials = true;
 		
 		return config;
 	});
