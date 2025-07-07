@@ -228,7 +228,11 @@ export function frameRunner(tabId, frameId, domains, url) {
  * @param {soulsign.Task} task 脚本允许访问的
  */
 export default function (task) {
-	let request = axios.create({timeout: 10e3});
+	// 创建axios实例，启用withCredentials以自动发送cookie
+	let request = axios.create({
+		timeout: 10e3,
+		withCredentials: true
+	});
 	const domains = task.domains.concat();
 	
 	// 添加请求拦截器
@@ -259,58 +263,21 @@ export default function (task) {
 				config.headers._user_agent = config.headers["user-agent"];
 				delete config.headers["user-agent"];
 			}
+			
+			// 如果用户手动设置了Cookie头，转换为自定义头部，后续在background页面处理
+			if (config.headers.Cookie) {
+				config.headers._cookie = config.headers.Cookie;
+				delete config.headers.Cookie;
+			}
 		}
 		
-		// 如果脚本有cookie权限，并且请求没有设置Cookie头，则自动添加cookie
-		if (grant.has("cookie") && (!config.headers || !config.headers.Cookie)) {
-			try {
-				// 获取URL的所有cookie（包括分区cookie）
-				const url = config.url;
-				let allCookies = [];
-				
-				// 获取普通cookie
-				const normalCookies = await new Promise((resolve) => {
-					chrome.cookies.getAll({ url }, (cookies) => resolve(cookies || []));
-				});
-				allCookies = [...normalCookies];
-				
-				// 尝试获取分区cookie
-				try {
-					// 创建一个分区键
-					const partitionKey = { 
-						topLevelSite: new URL(url).origin 
-					};
-					
-					const partitionedCookies = await new Promise((resolve) => {
-						chrome.cookies.getAll({ 
-							url, 
-							partitionKey 
-						}, (cookies) => resolve(cookies || []));
-					});
-					
-					// 合并分区cookie，避免重复
-					const existingNames = new Set(allCookies.map(c => c.name));
-					for (const cookie of partitionedCookies) {
-						if (!existingNames.has(cookie.name)) {
-							allCookies.push(cookie);
-						}
-					}
-				} catch (error) {
-					console.error('Error getting partitioned cookies:', error);
-				}
-				
-				// 如果找到了cookie，添加到请求头
-				if (allCookies.length > 0) {
-					const cookieStr = allCookies
-						.map(cookie => `${cookie.name}=${cookie.value}`)
-						.join('; ');
-					
-					config.headers = config.headers || {};
-					config.headers.Cookie = cookieStr;
-				}
-			} catch (error) {
-				console.error('Error getting cookies for request:', error);
-			}
+		// 如果脚本有cookie权限，启用withCredentials以自动发送cookie
+		if (grant.has("cookie")) {
+			config.withCredentials = true;
+			
+			// 记录当前URL，用于后续在background页面处理时获取对应的cookie
+			config.headers = config.headers || {};
+			config.headers._url = config.url;
 		}
 		
 		return config;
@@ -345,25 +312,27 @@ export default function (task) {
 		},
 		/**
 		 * 获取指定url指定名字的cookie
-		 * @param {string} url
-		 * @param {string} name
-		 * @param {object} options 可选参数
-		 * @param {object} options.partitionKey 指定cookie分区键
-		 * @param {boolean} options.getAllPartitions 是否获取所有分区的cookie
+		 * @param {string|object} urlOrDetails URL或完整的cookie详情对象
+		 * @param {string} [name] cookie名称（如果第一个参数是URL）
+		 * @param {object} [options] 可选参数
+		 * @param {object} [options.partitionKey] 指定cookie分区键
+		 * @param {boolean} [options.partitioned] 是否获取分区cookie
+		 * @param {boolean} [options.getAllPartitions] 是否获取所有分区的cookie
+		 * @returns {Promise<string>} 返回cookie值
 		 */
-		getCookie(url, name, options = {}) {
+		getCookie(urlOrDetails, name, options = {}) {
 			if (!grant.has("cookie")) return Promise.reject("需要@grant cookie");
 			
-			// 默认参数
-			const details = { url, name };
-			
-			// 如果指定了partitionKey
-			if (options.partitionKey) {
-				details.partitionKey = options.partitionKey;
+			// 处理参数
+			let details;
+			if (typeof urlOrDetails === 'string') {
+				details = { url: urlOrDetails, name, ...options };
+			} else {
+				details = { ...urlOrDetails };
 			}
 			
 			// 如果需要获取所有分区的cookie
-			if (options.getAllPartitions) {
+			if (details.getAllPartitions) {
 				// 由于Chrome API不支持直接获取所有分区的cookie，我们需要先获取当前cookie
 				// 然后再尝试获取带有分区的cookie
 				return new Promise((resolve, reject) => {
@@ -382,8 +351,8 @@ export default function (task) {
 						// 创建一个简单的分区键
 						const partitionedDetails = { 
 							...details, 
-							partitionKey: { 
-								topLevelSite: new URL(url).origin 
+							partitionKey: details.partitionKey || { 
+								topLevelSite: new URL(details.url).origin 
 							} 
 						};
 						
@@ -397,6 +366,13 @@ export default function (task) {
 				});
 			}
 			
+			// 如果指定了partitioned或partitionKey，添加分区键
+			if ((details.partitioned || details.partitionKey) && !details.partitionKey) {
+				details.partitionKey = {
+					topLevelSite: new URL(details.url).origin
+				};
+			}
+			
 			// 默认行为
 			return new Promise((resolve, reject) => {
 				chrome.cookies.get(details, (cookie) => {
@@ -407,32 +383,43 @@ export default function (task) {
 				});
 			});
 		},
+		
 		/**
 		 * 设置指定url指定名字的cookie
-		 * @param {string} url
-		 * @param {string} name
-		 * @param {string} value
-		 * @param {object} options 可选参数
-		 * @param {object} options.partitionKey 指定cookie分区键
-		 * @param {boolean} options.partitioned 是否设置为分区cookie
+		 * @param {string|object} urlOrDetails URL或完整的cookie详情对象
+		 * @param {string} [name] cookie名称（如果第一个参数是URL）
+		 * @param {string} [value] cookie值（如果第一个参数是URL）
+		 * @param {object} [options] 可选参数
+		 * @param {object} [options.partitionKey] 指定cookie分区键
+		 * @param {boolean} [options.partitioned] 是否设置为分区cookie
+		 * @param {string} [options.domain] cookie域
+		 * @param {string} [options.path] cookie路径
+		 * @param {boolean} [options.secure] 是否只在HTTPS连接中发送
+		 * @param {boolean} [options.httpOnly] 是否只允许HTTP访问
+		 * @param {string} [options.sameSite] 同站点设置：'strict'、'lax'或'none'
+		 * @param {number} [options.expirationDate] 过期时间戳（秒）
+		 * @returns {Promise<string>} 返回设置的cookie值
 		 */
-		setCookie(url, name, value, options = {}) {
+		setCookie(urlOrDetails, name, value, options = {}) {
 			if (!grant.has("cookie")) return Promise.reject("需要@grant cookie");
 			
-			const cookieDetails = {url, name, value};
-			
-			// 如果指定了partitionKey
-			if (options && options.partitionKey) {
-				cookieDetails.partitionKey = options.partitionKey;
+			// 处理参数
+			let details;
+			if (typeof urlOrDetails === 'string') {
+				details = { url: urlOrDetails, name, value, ...options };
+			} else {
+				details = { ...urlOrDetails };
 			}
 			
-			// 如果指定了partitioned
-			if (options && options.partitioned) {
-				cookieDetails.partitioned = true;
+			// 如果指定了partitioned或partitionKey，添加分区键
+			if ((details.partitioned || details.partitionKey) && !details.partitionKey) {
+				details.partitionKey = {
+					topLevelSite: new URL(details.url).origin
+				};
 			}
 			
 			return new Promise((resolve, reject) => {
-				chrome.cookies.set(cookieDetails, (cookie) => {
+				chrome.cookies.set(details, (cookie) => {
 					if (chrome.runtime.lastError) {
 						return reject(chrome.runtime.lastError);
 					}
@@ -540,10 +527,20 @@ export default function (task) {
 		},
 		/**
 		 * 获取指定url的所有cookie（包括分区cookie）
-		 * @param {string} url
+		 * @param {string|object} urlOrDetails URL或完整的cookie详情对象
+		 * @param {object} [options] 可选参数
+		 * @returns {Promise<Array<Cookie>>} 返回cookie对象数组
 		 */
-		getAllCookies(url) {
+		getAllCookies(urlOrDetails, options = {}) {
 			if (!grant.has("cookie")) return Promise.reject("需要@grant cookie");
+			
+			// 处理参数
+			let details;
+			if (typeof urlOrDetails === 'string') {
+				details = { url: urlOrDetails, ...options };
+			} else {
+				details = { ...urlOrDetails };
+			}
 			
 			return new Promise(async (resolve, reject) => {
 				try {
@@ -551,22 +548,24 @@ export default function (task) {
 					
 					// 获取普通cookie
 					const normalCookies = await new Promise((resolveNormal) => {
-						chrome.cookies.getAll({ url }, (cookies) => resolveNormal(cookies || []));
+						chrome.cookies.getAll(details, (cookies) => resolveNormal(cookies || []));
 					});
 					allCookies = [...normalCookies];
 					
 					// 尝试获取分区cookie
 					try {
 						// 创建一个分区键
-						const partitionKey = { 
-							topLevelSite: new URL(url).origin 
+						const partitionKey = details.partitionKey || { 
+							topLevelSite: new URL(details.url).origin 
+						};
+						
+						const partitionedDetails = {
+							...details,
+							partitionKey
 						};
 						
 						const partitionedCookies = await new Promise((resolvePartitioned) => {
-							chrome.cookies.getAll({ 
-								url, 
-								partitionKey 
-							}, (cookies) => resolvePartitioned(cookies || []));
+							chrome.cookies.getAll(partitionedDetails, (cookies) => resolvePartitioned(cookies || []));
 						});
 						
 						// 合并分区cookie，避免重复
