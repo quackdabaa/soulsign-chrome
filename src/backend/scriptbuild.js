@@ -230,8 +230,13 @@ export function frameRunner(tabId, frameId, domains, url) {
 export default function (task) {
 	let request = axios.create({timeout: 10e3});
 	const domains = task.domains.concat();
-	request.interceptors.request.use(function (config) {
+	
+	// 添加请求拦截器
+	request.interceptors.request.use(async function (config) {
+		// 检查域名权限
 		if (!checkDomain(domains, config.url)) return Promise.reject(`domain配置不正确`);
+		
+		// 处理请求头
 		if (config.headers) {
 			if (config.headers.Referer) {
 				config.headers._referer = config.headers.Referer;
@@ -255,8 +260,62 @@ export default function (task) {
 				delete config.headers["user-agent"];
 			}
 		}
+		
+		// 如果脚本有cookie权限，并且请求没有设置Cookie头，则自动添加cookie
+		if (grant.has("cookie") && (!config.headers || !config.headers.Cookie)) {
+			try {
+				// 获取URL的所有cookie（包括分区cookie）
+				const url = config.url;
+				let allCookies = [];
+				
+				// 获取普通cookie
+				const normalCookies = await new Promise((resolve) => {
+					chrome.cookies.getAll({ url }, (cookies) => resolve(cookies || []));
+				});
+				allCookies = [...normalCookies];
+				
+				// 尝试获取分区cookie
+				try {
+					// 创建一个分区键
+					const partitionKey = { 
+						topLevelSite: new URL(url).origin 
+					};
+					
+					const partitionedCookies = await new Promise((resolve) => {
+						chrome.cookies.getAll({ 
+							url, 
+							partitionKey 
+						}, (cookies) => resolve(cookies || []));
+					});
+					
+					// 合并分区cookie，避免重复
+					const existingNames = new Set(allCookies.map(c => c.name));
+					for (const cookie of partitionedCookies) {
+						if (!existingNames.has(cookie.name)) {
+							allCookies.push(cookie);
+						}
+					}
+				} catch (error) {
+					console.error('Error getting partitioned cookies:', error);
+				}
+				
+				// 如果找到了cookie，添加到请求头
+				if (allCookies.length > 0) {
+					const cookieStr = allCookies
+						.map(cookie => `${cookie.name}=${cookie.value}`)
+						.join('; ');
+					
+					config.headers = config.headers || {};
+					config.headers.Cookie = cookieStr;
+				}
+			} catch (error) {
+				console.error('Error getting cookies for request:', error);
+			}
+		}
+		
 		return config;
 	});
+	
 	let grant = new Set(task.grants);
 	let inject = {
 		axios: request,
@@ -288,11 +347,64 @@ export default function (task) {
 		 * 获取指定url指定名字的cookie
 		 * @param {string} url
 		 * @param {string} name
+		 * @param {object} options 可选参数
+		 * @param {object} options.partitionKey 指定cookie分区键
+		 * @param {boolean} options.getAllPartitions 是否获取所有分区的cookie
 		 */
-		getCookie(url, name) {
+		getCookie(url, name, options = {}) {
 			if (!grant.has("cookie")) return Promise.reject("需要@grant cookie");
+			
+			// 默认参数
+			const details = { url, name };
+			
+			// 如果指定了partitionKey
+			if (options.partitionKey) {
+				details.partitionKey = options.partitionKey;
+			}
+			
+			// 如果需要获取所有分区的cookie
+			if (options.getAllPartitions) {
+				// 由于Chrome API不支持直接获取所有分区的cookie，我们需要先获取当前cookie
+				// 然后再尝试获取带有分区的cookie
+				return new Promise((resolve, reject) => {
+					// 先尝试获取普通cookie
+					chrome.cookies.get(details, (cookie) => {
+						if (chrome.runtime.lastError) {
+							return reject(chrome.runtime.lastError);
+						}
+						
+						// 如果找到了普通cookie，直接返回
+						if (cookie) {
+							return resolve(cookie.value);
+						}
+						
+						// 如果没有找到普通cookie，尝试获取分区cookie
+						// 创建一个简单的分区键
+						const partitionedDetails = { 
+							...details, 
+							partitionKey: { 
+								topLevelSite: new URL(url).origin 
+							} 
+						};
+						
+						chrome.cookies.get(partitionedDetails, (partitionedCookie) => {
+							if (chrome.runtime.lastError) {
+								return reject(chrome.runtime.lastError);
+							}
+							resolve(partitionedCookie && partitionedCookie.value);
+						});
+					});
+				});
+			}
+			
+			// 默认行为
 			return new Promise((resolve, reject) => {
-				chrome.cookies.get({url, name}, (x) => resolve(x && x.value));
+				chrome.cookies.get(details, (cookie) => {
+					if (chrome.runtime.lastError) {
+						return reject(chrome.runtime.lastError);
+					}
+					resolve(cookie && cookie.value);
+				});
 			});
 		},
 		/**
@@ -300,11 +412,32 @@ export default function (task) {
 		 * @param {string} url
 		 * @param {string} name
 		 * @param {string} value
+		 * @param {object} options 可选参数
+		 * @param {object} options.partitionKey 指定cookie分区键
+		 * @param {boolean} options.partitioned 是否设置为分区cookie
 		 */
-		setCookie(url, name, value) {
+		setCookie(url, name, value, options = {}) {
 			if (!grant.has("cookie")) return Promise.reject("需要@grant cookie");
+			
+			const cookieDetails = {url, name, value};
+			
+			// 如果指定了partitionKey
+			if (options && options.partitionKey) {
+				cookieDetails.partitionKey = options.partitionKey;
+			}
+			
+			// 如果指定了partitioned
+			if (options && options.partitioned) {
+				cookieDetails.partitioned = true;
+			}
+			
 			return new Promise((resolve, reject) => {
-				chrome.cookies.set({url, name, value}, (x) => resolve(x && x.value));
+				chrome.cookies.set(cookieDetails, (cookie) => {
+					if (chrome.runtime.lastError) {
+						return reject(chrome.runtime.lastError);
+					}
+					resolve(cookie && cookie.value);
+				});
 			});
 		},
 		/**
@@ -404,6 +537,54 @@ export default function (task) {
 			if (/macintosh|mac os x/i.test(navigator.userAgent))
 				return inject.openWindow(url, dev, fn, preload);
 			return inject.openTab(url, dev, fn, preload);
+		},
+		/**
+		 * 获取指定url的所有cookie（包括分区cookie）
+		 * @param {string} url
+		 */
+		getAllCookies(url) {
+			if (!grant.has("cookie")) return Promise.reject("需要@grant cookie");
+			
+			return new Promise(async (resolve, reject) => {
+				try {
+					let allCookies = [];
+					
+					// 获取普通cookie
+					const normalCookies = await new Promise((resolveNormal) => {
+						chrome.cookies.getAll({ url }, (cookies) => resolveNormal(cookies || []));
+					});
+					allCookies = [...normalCookies];
+					
+					// 尝试获取分区cookie
+					try {
+						// 创建一个分区键
+						const partitionKey = { 
+							topLevelSite: new URL(url).origin 
+						};
+						
+						const partitionedCookies = await new Promise((resolvePartitioned) => {
+							chrome.cookies.getAll({ 
+								url, 
+								partitionKey 
+							}, (cookies) => resolvePartitioned(cookies || []));
+						});
+						
+						// 合并分区cookie，避免重复
+						const existingNames = new Set(allCookies.map(c => c.name));
+						for (const cookie of partitionedCookies) {
+							if (!existingNames.has(cookie.name)) {
+								allCookies.push(cookie);
+							}
+						}
+					} catch (error) {
+						console.error('Error getting partitioned cookies:', error);
+					}
+					
+					resolve(allCookies);
+				} catch (error) {
+					reject(error);
+				}
+			});
 		},
 	};
 	if (!grant.has("eval")) {
