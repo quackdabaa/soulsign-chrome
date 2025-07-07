@@ -200,19 +200,46 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
 		// 只有插件才加
 		var initiaor = details.initiator || details.documentUrl;
 		if (!initiaor || !/^\w+-extension:/.test(initiaor)) return;
-		let n = 0;
-		requestHeaders = requestHeaders
-			.filter((x) => {
-				return !/^(Referer|Origin|User-Agent)$/i.test(x.name);
-			})
-			.map((x) => {
-				if (x.name == "_referer") return {name: "Referer", value: x.value};
-				if (x.name == "_origin") return {name: "Origin", value: x.value};
-				if (x.name == "_user_agent") return {name: "User-Agent", value: x.value};
-				n++;
-				return x;
-			});
-		if (n < requestHeaders.length) return {requestHeaders};
+		
+		// 查找自定义头部
+		let hasCustomHeaders = false;
+		let urlHeader = null;
+		let cookieHeader = null;
+		
+		requestHeaders = requestHeaders.filter((x) => {
+			// 保存自定义头部信息
+			if (x.name === "_url") {
+				urlHeader = x;
+				return false;
+			}
+			if (x.name === "_cookie") {
+				cookieHeader = x;
+				return false;
+			}
+			return !/^(Referer|Origin|User-Agent)$/i.test(x.name);
+		}).map((x) => {
+			if (x.name == "_referer") {
+				hasCustomHeaders = true;
+				return {name: "Referer", value: x.value};
+			}
+			if (x.name == "_origin") {
+				hasCustomHeaders = true;
+				return {name: "Origin", value: x.value};
+			}
+			if (x.name == "_user_agent") {
+				hasCustomHeaders = true;
+				return {name: "User-Agent", value: x.value};
+			}
+			return x;
+		});
+		
+		// 如果用户指定了Cookie，直接使用
+		if (cookieHeader) {
+			requestHeaders.push({name: "Cookie", value: cookieHeader.value});
+			hasCustomHeaders = true;
+		}
+		
+		if (hasCustomHeaders) return {requestHeaders};
 	},
 	{urls: ["<all_urls>"], types: ["xmlhttprequest"]},
 	isFirefox ? ["blocking", "requestHeaders"] : ["blocking", "requestHeaders", "extraHeaders"]
