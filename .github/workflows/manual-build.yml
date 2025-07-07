@@ -1,0 +1,74 @@
+name: 手动构建Chrome扩展
+
+on:
+  # 允许从Actions选项卡手动触发
+  workflow_dispatch:
+    inputs:
+      version_bump:
+        description: '版本更新类型'
+        required: true
+        default: 'none'
+        type: choice
+        options:
+          - none
+          - patch
+          - minor
+          - major
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: 设置Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+          cache: 'npm'
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 更新版本号（如果需要）
+        if: ${{ github.event.inputs.version_bump != 'none' }}
+        run: |
+          npm version ${{ github.event.inputs.version_bump }} --no-git-tag-version
+          echo "NEW_VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_ENV
+
+      - name: 构建扩展
+        run: npm run build
+        
+      - name: 获取版本号
+        id: get_version
+        run: |
+          if [ -z "$NEW_VERSION" ]; then
+            echo "VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_ENV
+          else
+            echo "VERSION=$NEW_VERSION" >> $GITHUB_ENV
+          fi
+
+      - name: 重命名构建文件
+        run: mv build.zip soulsign-chrome-${{ env.VERSION }}.zip
+
+      - name: 上传构建文件
+        uses: actions/upload-artifact@v3
+        with:
+          name: soulsign-chrome-${{ env.VERSION }}
+          path: soulsign-chrome-${{ env.VERSION }}.zip
+          retention-days: 30
+
+      - name: 创建发布（如果版本已更新）
+        if: ${{ github.event.inputs.version_bump != 'none' }}
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ env.VERSION }}
+          name: Release v${{ env.VERSION }}
+          files: soulsign-chrome-${{ env.VERSION }}.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
