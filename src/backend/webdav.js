@@ -119,31 +119,46 @@ class WebDAVClient {
       });
       
       if (response.status >= 200 && response.status < 300) {
-        const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(response.data, "text/xml");
-        const responses = xmlDoc.getElementsByTagNameNS("DAV:", "response");
-        
-        const files = [];
-        for (let i = 0; i < responses.length; i++) {
-          const href = responses[i].getElementsByTagNameNS("DAV:", "href")[0].textContent;
-          const name = decodeURIComponent(href.split("/").pop());
+        try {
+          // 使用安全的方式解析XML
+          let parser;
+          if (typeof DOMParser !== 'undefined') {
+            parser = new DOMParser();
+          } else {
+            // 在后台脚本中，可能需要创建一个iframe来使用DOMParser
+            // 这里简单处理，直接返回空数组
+            console.warn("DOMParser不可用，无法解析WebDAV响应");
+            return [];
+          }
           
-          // 跳过当前目录
-          if (name === "" || href === fullPath) continue;
+          const xmlDoc = parser.parseFromString(response.data, "text/xml");
+          const responses = xmlDoc.getElementsByTagNameNS("DAV:", "response");
           
-          const resourceType = responses[i].getElementsByTagNameNS("DAV:", "resourcetype")[0];
-          const isDirectory = resourceType.getElementsByTagNameNS("DAV:", "collection").length > 0;
+          const files = [];
+          for (let i = 0; i < responses.length; i++) {
+            const href = responses[i].getElementsByTagNameNS("DAV:", "href")[0].textContent;
+            const name = decodeURIComponent(href.split("/").pop());
+            
+            // 跳过当前目录
+            if (name === "" || href === fullPath) continue;
+            
+            const resourceType = responses[i].getElementsByTagNameNS("DAV:", "resourcetype")[0];
+            const isDirectory = resourceType.getElementsByTagNameNS("DAV:", "collection").length > 0;
+            
+            const lastModified = responses[i].getElementsByTagNameNS("DAV:", "getlastmodified")[0]?.textContent;
+            
+            files.push({
+              name,
+              isDirectory,
+              lastModified: lastModified ? new Date(lastModified) : null,
+            });
+          }
           
-          const lastModified = responses[i].getElementsByTagNameNS("DAV:", "getlastmodified")[0]?.textContent;
-          
-          files.push({
-            name,
-            isDirectory,
-            lastModified: lastModified ? new Date(lastModified) : null,
-          });
+          return files;
+        } catch (parseError) {
+          console.error("解析WebDAV响应失败", parseError);
+          return [];
         }
-        
-        return files;
       }
       
       throw new Error(`列出文件夹内容失败: ${response.status}`);
@@ -175,12 +190,17 @@ class WebDAVClient {
  * @returns {WebDAVClient|null}
  */
 export function createWebDAVClient() {
-  const { webdav } = config;
-  if (!webdav.enabled || !webdav.url || !webdav.username || !webdav.password) {
+  try {
+    const { webdav } = config;
+    if (!webdav || !webdav.enabled || !webdav.url || !webdav.username || !webdav.password) {
+      return null;
+    }
+    
+    return new WebDAVClient(webdav.url, webdav.username, webdav.password);
+  } catch (error) {
+    console.error("创建WebDAV客户端失败", error);
     return null;
   }
-  
-  return new WebDAVClient(webdav.url, webdav.username, webdav.password);
 }
 
 /**

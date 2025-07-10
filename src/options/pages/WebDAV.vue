@@ -1,3 +1,4 @@
+// src/options/pages/WebDAV.vue
 <template>
   <div class="webdav-page">
     <h2>WebDAV备份设置</h2>
@@ -53,10 +54,10 @@
       <h3>备份管理</h3>
       <div class="buttons">
         <mu-button color="primary" @click="createBackup">创建备份</mu-button>
-        <mu-button color="primary" @click="refreshBackupList">刷新列表</mu-button>
+        <mu-button color="primary" @click="refreshBackupList">获取备份列表</mu-button>
       </div>
       
-      <mu-data-table :loading="loading" :columns="columns" :data="backups">
+      <mu-data-table v-if="backups.length > 0" :loading="loading" :columns="columns" :data="backups">
         <template slot-scope="scope">
           <td>{{ scope.row.name }}</td>
           <td>{{ formatDate(scope.row.date) }}</td>
@@ -66,6 +67,10 @@
           </td>
         </template>
       </mu-data-table>
+      <div v-else-if="listRequested">
+        <p v-if="loading">正在加载备份列表...</p>
+        <p v-else>暂无备份数据</p>
+      </div>
     </div>
   </div>
 </template>
@@ -78,6 +83,7 @@ export default {
   data() {
     return {
       loading: false,
+      listRequested: false, // 标记是否已请求过列表
       webdav: {
         enabled: false,
         url: "",
@@ -99,77 +105,101 @@ export default {
   
   async mounted() {
     await this.loadSettings();
-    await this.refreshBackupList();
+    // 不再自动请求备份列表
   },
   
   methods: {
     async loadSettings() {
-      const config = await sendMessage("config/get");
-      if (config.webdav) {
-        this.webdav = { ...config.webdav };
+      try {
+        const config = await sendMessage("config/get");
+        if (config && config.webdav) {
+          this.webdav = { ...config.webdav };
+        }
+      } catch (error) {
+        console.error("加载设置失败", error);
       }
     },
     
     async saveSettings() {
-      this.$with(async () => {
+      try {
         await sendMessage("config/set", { webdav: this.webdav });
         this.$toast.success("WebDAV设置已保存");
-      });
+      } catch (error) {
+        this.$toast.error(`保存设置失败: ${error.message || error}`);
+        console.error("保存设置失败", error);
+      }
     },
     
     async testConnection() {
-      this.$with(async () => {
+      try {
         // 先保存当前设置
         await sendMessage("config/set", { webdav: this.webdav });
         
         // 测试连接
-        const result = await sendMessage("webdav/test");
-        if (result.success) {
+        const response = await sendMessage("webdav/test");
+        if (response && response.success) {
           this.$toast.success("WebDAV连接成功");
         } else {
-          this.$toast.error(`WebDAV连接失败: ${result.message}`);
+          this.$toast.error(`WebDAV连接失败: ${response ? response.message : '未知错误'}`);
         }
-      });
+      } catch (error) {
+        this.$toast.error(`测试连接失败: ${error.message || error}`);
+        console.error("测试连接失败", error);
+      }
     },
     
     async createBackup() {
-      this.$with(async () => {
+      try {
         const result = await sendMessage("webdav/backup");
-        if (result.success) {
+        if (result && result.success) {
           this.$toast.success("备份创建成功");
           await this.refreshBackupList();
         } else {
-          this.$toast.error(`备份创建失败: ${result.message}`);
+          this.$toast.error(`备份创建失败: ${result ? result.message : '未知错误'}`);
         }
-      });
+      } catch (error) {
+        this.$toast.error(`备份创建失败: ${error.message || error}`);
+        console.error("备份创建失败", error);
+      }
     },
     
     async refreshBackupList() {
       this.loading = true;
+      this.listRequested = true;
       try {
-        this.backups = await sendMessage("webdav/list");
+        const backups = await sendMessage("webdav/list");
+        if (Array.isArray(backups)) {
+          this.backups = backups;
+        } else {
+          this.backups = [];
+          console.error("获取备份列表返回格式错误", backups);
+        }
       } catch (error) {
-        this.$toast.error(`获取备份列表失败: ${error.message}`);
+        this.$toast.error(`获取备份列表失败: ${error.message || error}`);
+        console.error("获取备份列表失败", error);
+        this.backups = [];
       } finally {
         this.loading = false;
       }
     },
     
     async restore(backup) {
-      const { result } = await this.$message.confirm(`确定要恢复备份 ${backup.name} 吗？这将覆盖当前的所有配置和任务。`);
-      if (!result) return;
-      
-      this.$with(async () => {
-        const result = await sendMessage("webdav/restore", backup.name);
-        if (result.success) {
+      try {
+        const { result } = await this.$message.confirm(`确定要恢复备份 ${backup.name} 吗？这将覆盖当前的所有配置和任务。`);
+        if (!result) return;
+        
+        const response = await sendMessage("webdav/restore", backup.name);
+        if (response && response.success) {
           // 应用恢复的配置和任务
-          await sendMessage("config/set", result.config);
+          await sendMessage("config/set", response.config);
           
           let add_cnt = 0;
           let set_cnt = 0;
-          for (let task of result.tasks) {
-            if (await sendMessage("task/add", task)) set_cnt++;
-            else add_cnt++;
+          if (Array.isArray(response.tasks)) {
+            for (let task of response.tasks) {
+              if (await sendMessage("task/add", task)) set_cnt++;
+              else add_cnt++;
+            }
           }
           
           this.$toast.success(`备份恢复成功，导入${add_cnt}条，更新${set_cnt}条`);
@@ -179,24 +209,30 @@ export default {
             location.reload();
           }, 1500);
         } else {
-          this.$toast.error(`备份恢复失败: ${result.message}`);
+          this.$toast.error(`备份恢复失败: ${response ? response.message : '未知错误'}`);
         }
-      });
+      } catch (error) {
+        this.$toast.error(`备份恢复失败: ${error.message || error}`);
+        console.error("备份恢复失败", error);
+      }
     },
     
     async deleteBackup(backup) {
-      const { result } = await this.$message.confirm(`确定要删除备份 ${backup.name} 吗？`);
-      if (!result) return;
-      
-      this.$with(async () => {
-        const result = await sendMessage("webdav/delete", backup.name);
-        if (result.success) {
+      try {
+        const { result } = await this.$message.confirm(`确定要删除备份 ${backup.name} 吗？`);
+        if (!result) return;
+        
+        const response = await sendMessage("webdav/delete", backup.name);
+        if (response && response.success) {
           this.$toast.success("备份删除成功");
           await this.refreshBackupList();
         } else {
-          this.$toast.error(`备份删除失败: ${result.message}`);
+          this.$toast.error(`备份删除失败: ${response ? response.message : '未知错误'}`);
         }
-      });
+      } catch (error) {
+        this.$toast.error(`备份删除失败: ${error.message || error}`);
+        console.error("备份删除失败", error);
+      }
     },
     
     formatDate(date) {
