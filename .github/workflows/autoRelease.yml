@@ -1,9 +1,9 @@
 name: autoRelease
 
-# on:
-#   push:
-#     branches:
-#       - master
+on:
+  push:
+    branches:
+      - nil
 
 jobs:
   setup-and-build:
