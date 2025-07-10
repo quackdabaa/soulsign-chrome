@@ -1,4 +1,3 @@
-// src/backend/webdav.js
 import axios from "axios";
 import JSZip from "jszip";
 import { format } from "@/common/utils";
@@ -30,7 +29,10 @@ class WebDAVClient {
    */
   async testConnection() {
     try {
-      const response = await this.client.propfind(this.url, {
+      // 使用request方法替代propfind
+      const response = await this.client.request({
+        method: "PROPFIND",
+        url: this.url,
         headers: {
           Depth: "0",
         },
@@ -107,7 +109,10 @@ class WebDAVClient {
   async listFiles(path) {
     try {
       const fullPath = this.url + path;
-      const response = await this.client.propfind(fullPath, {
+      // 使用request方法替代propfind
+      const response = await this.client.request({
+        method: "PROPFIND",
+        url: fullPath,
         headers: {
           Depth: "1",
         },
@@ -368,7 +373,7 @@ export async function deleteBackup(filename) {
 export async function checkAutoBackup() {
   try {
     const { webdav } = config;
-    if (!webdav.enabled || !webdav.autoBackup) return;
+    if (!webdav || !webdav.enabled || !webdav.autoBackup) return;
     
     const now = Date.now();
     const lastBackup = webdav.lastBackup || 0;
