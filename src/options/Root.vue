@@ -4,6 +4,7 @@
 			<div class="mu-appbar-title" @click="go('#')">
 				{{ manifest.name }}<small class="sup">{{ manifest.version }}</small>
 			</div>
+			<mu-button slot="right" flat @click="go('#webdav')">WebDAV备份</mu-button>
 			<mu-button slot="right" flat @click="go('#cross')">跨域管理</mu-button>
 			<mu-button slot="right" flat @click="go('#')">脚本管理</mu-button>
 			<mu-button slot="right" flat @click="go('https://soulsign.inu1255.cn/', 1)"
@@ -14,7 +15,8 @@
 			>
 		</mu-appbar>
 		<br />
-		<Cross v-if="path == 'cross'"></Cross>
+		<WebDAV v-if="path == 'webdav'"></WebDAV>
+		<Cross v-else-if="path == 'cross'"></Cross>
 		<mu-container v-else style="margin-bottom: 245px">
 			<div class="tar head-tools">
 				<mu-button color="primary" @click="upload()">导入脚本</mu-button>
@@ -170,6 +172,7 @@
 </template>
 <script>
 import Cross from "./pages/Cross.vue";
+import WebDAV from "./pages/WebDAV.vue";
 import Preview from "./pages/Preview.vue";
 import Details from "./pages/Details.vue";
 import JSZip from "jszip";
@@ -204,6 +207,7 @@ export default {
 	components: {
 		Preview,
 		Cross,
+		WebDAV,
 		Details,
 		PrismEditor,
 	},
@@ -574,6 +578,7 @@ export default {
 			let hash = location.hash.slice(1);
 			let match = {};
 			if (hash == "cross") this.path = "cross";
+			else if (hash == "webdav") this.path = "webdav";
 			else this.path = "";
 			if ((match = hash.match(/details:([^;]+);(.*)/))) {
 				this.detail = {script: match[2], row: match[1]};

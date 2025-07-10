@@ -1,9 +1,10 @@
 import config from "../backend/config";
 import backapi from "../backend/backapi";
-import {isFirefox, localGet, localSave, newNotification, syncGet, syncSave} from "@/common/chrome";
-import {isEmpty, sleep} from "@/common/utils";
-import {addTask, compileTask, getTasks, runTask, setTask} from "@/backend/utils";
+import { isFirefox, localGet, localSave, newNotification, syncGet, syncSave } from "@/common/chrome";
+import { isEmpty, sleep } from "@/common/utils";
+import { addTask, compileTask, getTasks, runTask, setTask } from "@/backend/utils";
 import compareVersions from "compare-versions";
+import { checkAutoBackup } from "@/backend/webdav";
 
 chrome.runtime.onMessage.addListener(function (info, sender, cb) {
 	(async () => {
@@ -46,6 +47,21 @@ function init() {
 						Object.assign(config, data);
 						localGet("tasks").then((tasks) => {
 							chrome.storage.local.clear(function () {
+								// 初始化WebDAV配置
+								if (!config.webdav) {
+									config.webdav = {
+										enabled: false,
+										url: "",
+										username: "",
+										password: "",
+										folder: "soulsign-backup",
+										autoBackup: false,
+										backupFreq: 86400,
+										lastBackup: 0,
+										maxBackups: 10,
+									};
+								}
+								
 								syncSave({config});
 								let sync = {tasks: []};
 								let local = {};
@@ -60,11 +76,44 @@ function init() {
 					} else {
 						// 新安装
 						console.log("新安装");
+						
+						// 初始化WebDAV配置
+						if (!config.webdav) {
+							config.webdav = {
+								enabled: false,
+								url: "",
+								username: "",
+								password: "",
+								folder: "soulsign-backup",
+								autoBackup: false,
+								backupFreq: 86400,
+								lastBackup: 0,
+								maxBackups: 10,
+							};
+						}
+						
 						resolve();
 					}
 				});
 			} else {
 				Object.assign(config, data);
+				
+				// 确保WebDAV配置存在
+				if (!config.webdav) {
+					config.webdav = {
+						enabled: false,
+						url: "",
+						username: "",
+						password: "",
+						folder: "soulsign-backup",
+						autoBackup: false,
+						backupFreq: 86400,
+						lastBackup: 0,
+						maxBackups: 10,
+					};
+					syncSave({config});
+				}
+				
 				resolve();
 			}
 		});
@@ -75,6 +124,8 @@ async function loop() {
 	let tasks = await getTasks();
 	let today = new Date(Date.now() - config.begin_at).setHours(0, 0, 0, 0) + config.begin_at;
 	let err_cnt = 0;
+	// 检查是否需要自动备份
+	await checkAutoBackup();
 	for (let task of tasks) {
 		if (!task.enable) continue;
 		let changed = false;

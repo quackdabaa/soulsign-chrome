@@ -39,4 +39,26 @@ export default {
 	"record/end"(data) {
 		return getCode(data);
 	},
+	// WebDAV相关API
+	"webdav/test"() {
+		const client = createWebDAVClient();
+		if (!client) {
+		return Promise.resolve({ success: false, message: "WebDAV未配置或未启用" });
+		}
+		return client.testConnection().then(success => {
+		return { success, message: success ? "连接成功" : "连接失败" };
+		});
+	},
+	"webdav/backup"() {
+		return createBackup();
+	},
+	"webdav/list"() {
+		return getBackupList();
+	},
+	"webdav/restore"(filename) {
+		return restoreBackup(filename);
+	},
+	"webdav/delete"(filename) {
+		return deleteBackup(filename);
+	}
 };

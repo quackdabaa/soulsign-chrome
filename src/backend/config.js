@@ -24,6 +24,18 @@ const config = {
 	/** 通知地址 */
 	notify_url: "",
 	local_notify: true,
+	/** WebDAV配置 */
+	webdav: {
+		enabled: false,
+		url: "",
+		username: "",
+		password: "",
+		folder: "soulsign-backup",
+		autoBackup: false,
+		backupFreq: 86400, // 自动备份频率(秒)，默认1天
+		lastBackup: 0, // 最后备份时间
+		maxBackups: 10, // 最大备份数量
+	},
 };
 
 export default config;
